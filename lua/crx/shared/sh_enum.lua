@@ -1,3 +1,5 @@
+util.AddNetworkString("CLXNetworkUserGroup")
+
 CRX_VERSION = 1.0
 CRX_DATE = "1/3/2024" -- version date
 CRX_LINK = "https://github.com/barkleygaiden/crx" -- link to CRX
