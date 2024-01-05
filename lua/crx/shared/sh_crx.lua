@@ -23,7 +23,6 @@ end
 CRXClass = CRXClass or NewClass()
 
 function CRXClass:__constructor()
-	self.Users = {}
 	self.Categories = {}
 	self.Commands = {}
 	self.CategoryCount = 0
@@ -81,29 +80,6 @@ function CRXClass:CloseMenu()
 
 		self.Frame:Close()
 	end)
-end
-
-function CRXClass:GetUsers()
-	return self.Users
-end
-
-function CRXClass:GetUser(ply)
-	local steamID = (string.IsValid(ply) and ply) or (IsValid(ply) and ply:SteamID64())
-
-	return self.Users[steamID]
-end
-
-function CRXClass:SetUser(ply, group)
-	if CLIENT or !IsValid(ply) then return end
-
-	CAMI.SignalUserGroupChanged(ply, CRX:GetUser(ply), group, "CLX")
-
-	-- Implement the original SetUserGroup functionality
-	ply:SetNWString("UserGroup", group)
-
-	net.Start("CLXNetworkUserGroup")
-	net.WriteString(group)
-	net.Broadcast()
 end
 
 function CRXClass:GetCommand(cmd)
@@ -181,4 +157,9 @@ function CRXClass:RemoveCategory(category)
 	table.RemoveByValue(self.Categories, category)
 
 	self.CategoryCount = self.CategoryCount - 1
+end
+
+-- NOTE: Helper for creating new classes
+function CRXClass:NewClass()
+	return NewClass()
 end

@@ -60,10 +60,6 @@ function CRXCommand:AddParameter(typ)
 	table.insert(self.Parameters, typ)
 end
 
-function CRXCommand:GetCallback(func)
-	return self.Callback
-end
-
 function CRXCommand:GetDefaultPermissions()
 	return self.DefaultPermissions
 end
@@ -72,4 +68,8 @@ function CRXCommand:SetDefaultPermissions(perms)
 	if !perms then return end
 
 	self.DefaultPermissions = perms
+end
+
+function CRXCommand:GetCallback(func)
+	return self.Callback
 end
