@@ -3,6 +3,12 @@ CRXDatabaseClass = CRXDatabaseClass or CRX:NewClass()
 local DatabaseClass = CRXDatabaseClass
 
 function DatabaseClass:__constructor()
+	-- [steamid] -- CAMI_USERGROUP.Name
+	self.Users = {}
+
+	-- [CAMI_USERGROUP.Name] = CAMI_USERGROUP
+	self.UserGroups = {}
+
 	self.Valid = false
 end
 
@@ -38,13 +44,9 @@ function DatabaseClass:GetUserGroup(steamid)
 
 	steamid = (string.IsValid(steamid) and steamid) or (IsValid(steamid) and steamid:SteamID64())
 
-	local query = string.format(getUserGroupQuery, steamid)
+	local userGroupName = self.Users[steamid]
 
-	sql.Begin()
-	local userGroup = sql.Query(query)
-	sql.Commit()
-
-	return userGroup[1]
+	return self.UserGroups[userGroupName]
 end
 
 local setUserGroupQuery = "INSERT OR REPLACE INTO 'CRX_Users'('SteamID', 'Group') VALUES('%s', '%s')"
@@ -55,13 +57,11 @@ function DatabaseClass:SetUserGroup(steamid, group)
 	-- Get SteamID64 if the provided arg is not a string.
 	steamid = (string.IsValid(steamid) and steamid) or (IsValid(steamid) and steamid:SteamID64())
 
-	-- Return if the usergroup doesn't exist.
+	-- Make sure the usergroup exists and is registered.
 	if !CAMI.GetUserGroup(group) then return end
 
-	net.Start("CLXNetworkUserGroup")
-	net.WriteString(self:SteamID64())
-	net.WriteString(group)
-	net.Broadcast()
+	-- Cache the usergroup change.
+	self.Users[steamid] = group
 
 	-- TODO: Network with net class.
 
@@ -97,6 +97,9 @@ function DatabaseClass:AddUserGroup(group, inheritance)
 	-- Register the usergroup with CAMI.
 	CAMI.RegisterUsergroup(userGroup, "CRX")
 
+	-- Cache the new usergroup.
+	self.UserGroups[group] = userGroup
+
 	-- TODO: Network with net class.
 
 	local query = string.format(addUserGroupQuery, group, inheritance)
@@ -120,6 +123,9 @@ function DatabaseClass:RemoveUserGroup(group)
 
 	-- Unregister the usergroup from CAMI.
 	CAMI.UnregisterUsergroup(userGroup, "CRX")
+
+	-- Remove the usergroup from our cache.
+	self.UserGroups[group] = nil
 
 	-- TODO: Network with net class.
 

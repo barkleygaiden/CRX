@@ -4,15 +4,20 @@ local CategoryClass = CRXCategoryClass
 
 function CategoryClass:__constructor()
 	self.Commands = {}
-	self.CommandLookup = {}
-	self.CommandCount = 0
 end
 
 local classString = "[CRX] - Category: %s"
-local invalidString = "Invalid!"
+local invalidString = "[CRX] - Category: (Invalid!)"
 
 function CategoryClass:__tostring()
 	return string.format(classString, (self:IsValid() and self.Name) or invalidString)
+end
+
+function CategoryClass:__eq(other)
+	-- If either command doesn't have a name, they are not equal.
+	if !self:IsValid() or !other:IsValid() then return false end
+
+	return self:GetName() == other:GetName()
 end
 
 function CategoryClass:IsValid()
@@ -33,14 +38,14 @@ function CategoryClass:New(name)
 	-- Sets our new category's name
 	self.Name = name
 
-	-- Adds category to the main class table
+	-- Adds category to the main class table.
 	CRX:AddCategory(newCategory)
 
 	return newCategory
 end
 
 function CategoryClass:Remove()
-	-- Removes category from the main class table
+	-- Removes category from the main class table.
 	CRX:RemoveCategory(self)
 
 	-- TODO: Does this even do what I think it does?
@@ -53,6 +58,14 @@ end
 
 function CategoryClass:SetName(name)
 	self.Name = name
+end
+
+function CategoryClass:GetCommands()
+	return self.Commands
+end
+
+function CategoryClass:GetCommand(name)
+	return self.Commands[name]
 end
 
 function CategoryClass:AddCommand(command)
@@ -72,5 +85,5 @@ function CategoryClass:RemoveCommand(command)
 end
 
 function CategoryClass:HasCommand(name)
-	return self.CommandLookup[name]
+	return self.Commands[name]
 end

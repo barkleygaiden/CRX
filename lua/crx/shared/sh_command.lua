@@ -14,6 +14,13 @@ function CommandClass:__tostring()
 	return string.format(classString, (self:IsValid() and self.Name) or invalidString)
 end
 
+function CommandClass:__eq(other)
+	-- If either command doesn't have a name, they are not equal.
+	if !self:IsValid() or !other:IsValid() then return false end
+
+	return self:GetName() == other:GetName()
+end
+
 function CommandClass:IsValid()
 	return string.IsValid(self.Name) and isfunction(self.Callback)
 end
@@ -50,11 +57,24 @@ function CommandClass:GetName()
 end
 
 function CommandClass:SetName(name)
+	local category = self:GetCategory()
+
+	-- Removes command from the current category's table.
+	if category then
+		category.Commands[self.Name] = nil
+	end
+
+	local commands = CRX:GetCommands()
+
+	-- Removes command from the main class' commands table.
+	commands[self.Name] = nil
+
+	-- Set the new command name.
 	self.Name = name
 
 	local commands = CRX:GetCommands()
 
-	-- Adds command to the main class' commands table
+	-- Readds command to the main class' commands table.
 	commands[self.Name] = self
 end
 

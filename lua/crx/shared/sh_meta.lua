@@ -2,19 +2,25 @@ local PLAYER = FindMetaTable("Player")
 local userString = "user"
 
 function PLAYER:GetUserGroup()
-	return CLX:Database:GetUserGroup(self:SteamID64()) or userString
+	local userGroup = CLX:Database:GetUserGroup(self:SteamID64())
+
+	return (userGroup and userGroup.Name) or userString
 end
 
 function PLAYER:SetUserGroup(group)
 	if CLIENT then return end
 
+	local newUserGroup = CAMI.GetUserGroup(group)
+
 	-- Check if the usergroup exists.
-	if !CAMI.GetUserGroup(group) then return end
+	if !newUserGroup then return end
+
+	local oldUserGroup = CLXDatabase:GetUserGroup(self:SteamID64())
 
 	-- Signal to CAMI that our usergroup has changed.
-	CAMI.SignalUserGroupChanged(ply, ply:GetUserGroup(), group, "CRX")
+	CAMI.SignalUserGroupChanged(ply, oldUserGroup.Name, group, "CRX")
 
-	CLXDatabase:SetUserGroup(self:SteamID64(), group)
+	CLXDatabase:SetUserGroup(self:SteamID64(), newUserGroup)
 end
 
 function PLAYER:IsUserGroup(group)
