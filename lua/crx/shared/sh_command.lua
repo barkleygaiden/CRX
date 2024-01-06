@@ -1,47 +1,55 @@
-CRXCommand = {}
-CRXCommand.__index = CRXCommand
+CRXCommandClass = CRXCommandClass or CRX:NewClass()
 
-function CRXCommand:__constructor()
+local CommandClass = CRXCommandClass
+
+function CommandClass:__constructor()
 	self.Params = {}
 	self.DefaultPermissions = CRX_SUPERADMIN
 end
 
-function CRXCommand:New()
+local classString = "[CRX] - Command: %s"
+local invalidString = "Invalid!"
+
+function CommandClass:__tostring()
+	return string.format(classString, (self:IsValid() and self.Name) or invalidString)
+end
+
+function CommandClass:IsValid()
+	return string.IsValid(self.Name) and isfunction(self.Callback)
+end
+
+function CommandClass:New(name)
+	-- Without a name, command cannot possibly be valid.
+	if !string.IsValid(name) then return end
+
+	local fetchedCommand = CRX:GetCommand(name)
+
+	-- If a command with the same name already exists, return it.
+	if fetchedCommand and fetchedCommand:IsValid() then return fetchedCommand end
+
 	local newCommand = setmetatable({}, self)
+
+	-- Sets our new command's name
+	self.Name = name
 
 	return newCommand
 end
 
-function CRXCommand:Remove()
+function CommandClass:Remove()
 	local commands = CRX:GetCommands()
 
 	-- Removes command from the main class' commands table
 	commands[self.Name] = nil
 
+	-- TODO: Does this even do what I think it does?
 	setmetatable(self, nil)
 end
 
-function CRXCommand:IsValid()
-	return string.IsValid(self.Name) and isfunction(self.Callback)
-end
-
-function CRXCommand:GetCategory(category)
-	return self.Category
-end
-
-function CRXCommand:SetCategory(category)
-	self.Category = category
-
-	if !IsValid(category) then return end
-
-	category:AddCommand(self)
-end
-
-function CRXCommand:GetName()
+function CommandClass:GetName()
 	return self.Name
 end
 
-function CRXCommand:SetName(name)
+function CommandClass:SetName(name)
 	self.Name = name
 
 	local commands = CRX:GetCommands()
@@ -50,26 +58,40 @@ function CRXCommand:SetName(name)
 	commands[self.Name] = self
 end
 
-function CRXCommand:GetParameters()
+function CommandClass:GetCategory()
+	return self.Category
+end
+
+function CommandClass:SetCategory(category)
+	category = (string.IsValid(category) and category) or CRX:GetCategory(category)
+
+	self.Category = category
+
+	if !IsValid(category) then return end
+
+	category:AddCommand(self)
+end
+
+function CommandClass:GetParameters()
 	return self.Parameters
 end
 
-function CRXCommand:AddParameter(typ)
+function CommandClass:AddParameter(typ)
 	if !typ then return end
 
 	table.insert(self.Parameters, typ)
 end
 
-function CRXCommand:GetDefaultPermissions()
+function CommandClass:GetDefaultPermissions()
 	return self.DefaultPermissions
 end
 
-function CRXCommand:SetDefaultPermissions(perms)
+function CommandClass:SetDefaultPermissions(perms)
 	if !perms then return end
 
 	self.DefaultPermissions = perms
 end
 
-function CRXCommand:GetCallback(func)
+function CommandClass:GetCallback(func)
 	return self.Callback
 end

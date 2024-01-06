@@ -37,6 +37,12 @@ function CRXClass:__constructor()
     concommand.Add("crx", self:DoCommand)
 end
 
+local classString = "[CRX] - Core Class"
+
+function CRXClass:__tostring()
+	return classString
+end
+
 local dateParams = "%I:%M:%S %p"
 
 function CRXClass:OpenMenu()
@@ -82,14 +88,53 @@ function CRXClass:CloseMenu()
 	end)
 end
 
-function CRXClass:GetCommand(cmd)
-	if !string.IsValid(cmd) then return end
-
-	return self.Commands[cmd]
-end
-
 function CRXClass:GetCommands()
 	return self.Commands
+end
+
+function CRXClass:GetCommand(name)
+	if !string.IsValid(name) then return end
+
+	return self.Commands[name]
+end
+
+function CRXClass:CommandExists(name)
+	local command = self.Commands[name]
+
+	return command and command:IsValid()
+end
+
+function CRXClass:GetCategories()
+	return self.Categories
+end
+
+function CRXClass:GetCategory(name)
+	if !string.IsValid(name) then return end
+
+	return self.Categories[name]
+end
+
+function CRXClass:AddCategory(category)
+	if !category then return end
+
+	local name = category:GetName()
+
+	self.Categories[name] = category
+end
+
+-- I don't know why you would want to remove a category but here you go ¯\_(ツ)_/¯
+function CRXClass:RemoveCategory(category)
+	if !category then return end
+
+	local name = category:GetName()
+
+	self.Categories[name] = nil
+end
+
+function CRXClass:CategoryExists(name)
+	local category = self.Categories[name]
+
+	return category and category:IsValid()
 end
 
 local helpString = "help"
@@ -135,28 +180,6 @@ function CRXClass:DoCommand(ply, cmd, args, argstring)
 
 		return
 	end
-end
-
-function CRXClass:GetCategories()
-	return self.Categories
-end
-
-function CRXClass:AddCategory(category)
-	table.insert(self.Categories, category)
-
-	-- Storing table count saves a bit of performance
-	-- Using #tbl requires C bridge (Lua -> C -> Lua)
-	self.CategoryCount = self.CategoryCount + 1
-end
-
--- I don't know why you would want to remove a category but here you go ¯\_(ツ)_/¯
-function CRXClass:RemoveCategory(category)
-	table.insert(self.Categories, category)
-
-	-- We have to find the index manually :|
-	table.RemoveByValue(self.Categories, category)
-
-	self.CategoryCount = self.CategoryCount - 1
 end
 
 -- NOTE: Helper for creating new classes

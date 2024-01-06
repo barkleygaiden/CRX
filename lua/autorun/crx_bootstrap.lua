@@ -16,6 +16,7 @@ include("crx/shared/sh_meta.lua")
 
 if SERVER then
     include("crx/shared/sv_database.lua")
+    include("crx/shared/sv_hooks.lua")
 end
 
 -- Module loader

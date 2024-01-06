@@ -1,8 +1,10 @@
-local kickCommand = CRXCommand:New()
-kickCommand:SetName("kick")
+-- Create a new category object, returns existing object if category already exists
+local utilityCategory = CRXCategory:New("utility")
+
+-- Create a new command object
+local kickCommand = CRXCommand:New("kick")
 kickCommand:AddParameter(CRX_PARAMETER_PLAYER, "target")
 kickCommand:AddParameter(CRX_PARAMETER_STRING, "reason")
-kickCommand:SetDefaultPermissions(CRX_SUPERADMIN)
 
 local noneString = "n/a"
 local reasonString = "You were kicked by %s.\nReason: %s"
@@ -23,3 +25,6 @@ function kickCommand:Callback(ply, ...)
 
 	return true, string.format(successString, ply:Nick(), reasonArg)
 end
+
+-- Add command to the category object
+utilityCategory:AddCommand(kickCommand)
