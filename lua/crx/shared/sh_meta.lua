@@ -20,6 +20,7 @@ function PLAYER:SetUserGroup(group)
 	-- Signal to CAMI that our usergroup has changed.
 	CAMI.SignalUserGroupChanged(ply, oldUserGroup.Name, group, "CRX")
 
+	-- Set the usergroup in our database class
 	CLXDatabase:SetUserGroup(self:SteamID64(), newUserGroup)
 end
 

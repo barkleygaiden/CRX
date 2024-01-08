@@ -6,22 +6,21 @@ function DatabaseClass:__constructor()
 	-- [steamid] -- CAMI_USERGROUP.Name
 	self.Users = {}
 
-	-- [CAMI_USERGROUP.Name] = CAMI_USERGROUP
-	self.UserGroups = {}
-
 	self.Valid = false
 end
 
-local createGroupTableQuery = "CREATE TABLE IF NOT EXISTS 'CRX_Groups' ('Group' VARCHAR(48) PRIMARY KEY, 'Inheritance' VARCHAR(48))"
+local createGroupTableQuery = "CREATE TABLE IF NOT EXISTS 'CRX_Groups' ('Name' VARCHAR(48) PRIMARY KEY, 'Inherits' VARCHAR(48))"
 local createUserTableQuery = "CREATE TABLE IF NOT EXISTS 'CRX_Users' ('SteamID' VARCHAR(18) PRIMARY KEY, 'Group' VARCHAR(48))"
 local createIndexQuery = "CREATE INDEX IF NOT EXISTS 'CRX_Users' ON 'CRX_Users' ('Group')"
 
 function DatabaseClass:Initialize()
-    sql.Begin()
-    sql.Query(createGroupTableQuery)
-    sql.Query(createUserTableQuery)
-    sql.Query(createIndexQuery)
-    sql.Commit()
+	if SERVER then
+	    sql.Begin()
+	    sql.Query(createGroupTableQuery)
+	    sql.Query(createUserTableQuery)
+	    sql.Query(createIndexQuery)
+	    sql.Commit()
+	end
 
 	self.Valid = true
 end
@@ -37,34 +36,39 @@ function DatabaseClass:IsValid()
 end
 
 local userString = "user"
-local getUserGroupQuery = "SELECT 'Group' FROM 'CRX_Users' WHERE 'SteamID'='%s'"
 
 function DatabaseClass:GetUserGroup(steamid)
 	if !string.IsValid(steamid) then return end
 
 	steamid = (string.IsValid(steamid) and steamid) or (IsValid(steamid) and steamid:SteamID64())
 
-	local userGroupName = self.Users[steamid]
+	local userGroupName = self.Users[steamid] or userString
 
-	return self.UserGroups[userGroupName]
+	return CAMI.GetUsergroup(userGroupName)
 end
 
 local setUserGroupQuery = "INSERT OR REPLACE INTO 'CRX_Users'('SteamID', 'Group') VALUES('%s', '%s')"
 
 function DatabaseClass:SetUserGroup(steamid, group)
-	if !string.IsValid(steamid) or !string.IsValid(group) then return end
+	if !string.IsValid(steamid) then return end
+
+	-- Set group to user if nil.
+	group = (string.IsValid(group) and group) or userString
 
 	-- Get SteamID64 if the provided arg is not a string.
 	steamid = (string.IsValid(steamid) and steamid) or (IsValid(steamid) and steamid:SteamID64())
 
-	-- Make sure the usergroup exists and is registered.
+	-- Make sure usergroup exists and is registered.
 	if !CAMI.GetUserGroup(group) then return end
 
 	-- Cache the usergroup change.
 	self.Users[steamid] = group
 
+	if CLIENT then return end
+
 	-- TODO: Network with net class.
 
+	-- TODO: How does string.format handle nil?
 	local query = string.format(setUserGroupQuery, steamid, group)
 
 	sql.Begin()
@@ -72,10 +76,56 @@ function DatabaseClass:SetUserGroup(steamid, group)
 	sql.Commit()
 end
 
-local userString = "user"
+local emptyString = ""
+local removeUserGroupQuery = "DELETE FROM 'CRX_Groups' WHERE 'Name'='%s'"
+local changeUserGroupQuery = "INSERT OR REPLACE INTO 'CRX_Groups'('Name', 'Inherits') VALUES('%s', '%s')"
+
+function DatabaseClass:ChangeUserGroupName(group, name)
+	if CLIENT then return end
+	if !string.IsValid(group) then return end
+
+	-- Assemble query BEFORE the usergroup's name is changed.
+	local deleteQuery = string.format(removeUserGroupQuery, userGroup.Name)
+
+	-- Make changes to CAMI_USERGROUP object.
+	local userGroup = CAMI.GetUsergroup(group)
+	userGroup.Name = shouldDelete or userGroup.Name
+
+	-- Network the new CAMI_USERGROUP changes to all clients.
+	CRXNet:NetworkUserGroup(userGroup)
+
+	-- TODO: How does string.format handle nil?
+	local deleteQuery = string.format(removeUserGroupQuery, userGroup.Name)
+	local changeQuery = string.format(changeUserGroupQuery, userGroup.Name, userGroup.Inherits)
+
+	sql.Begin()
+	sql.Query(deleteQuery)
+	sql.Query(changeQuery)
+	sql.Commit()
+end
+
+function DatabaseClass:ChangeUserGroupInheritance(group, inheritance)
+	if !string.IsValid(group) then return end
+
+	-- Make changes to CAMI_USERGROUP object.
+	local userGroup = CAMI.GetUsergroup(group)
+	userGroup.Inherits = inheritance
+
+	-- Network the new CAMI_USERGROUP changes to all clients.
+	CRXNet:NetworkUserGroup(userGroup)
+
+	-- TODO: How does string.format handle nil?
+	local changeQuery = string.format(changeUserGroupQuery, userGroup.Name, userGroup.Inherits)
+
+	sql.Begin()
+	sql.Query(changeQuery)
+	sql.Commit()
+end
+
+local sourceString = "CRX"
 local adminString = "admin"
 local superAdminString = "superadmin"
-local addUserGroupQuery = "INSERT OR REPLACE INTO 'CRX_Groups'('Group', 'Inheritance') VALUES('%s', '%s')"
+local addUserGroupQuery = "INSERT OR REPLACE INTO 'CRX_Groups'('Name', 'Inherits') VALUES('%s', '%s')"
 
 function DatabaseClass:AddUserGroup(group, inheritance)
 	if !string.IsValid(group) then return end
@@ -95,10 +145,9 @@ function DatabaseClass:AddUserGroup(group, inheritance)
 	userGroup.Inherits = inheritance
 
 	-- Register the usergroup with CAMI.
-	CAMI.RegisterUsergroup(userGroup, "CRX")
+	CAMI.RegisterUsergroup(userGroup, sourceString)
 
-	-- Cache the new usergroup.
-	self.UserGroups[group] = userGroup
+	if CLIENT then return end
 
 	-- TODO: Network with net class.
 
@@ -109,8 +158,7 @@ function DatabaseClass:AddUserGroup(group, inheritance)
 	sql.Commit()
 end
 
-local removeUserGroupQuery = "DELETE FROM 'CRX_Groups' WHERE 'Group'='%s'"
-local removeUsersQuery = "DELETE FROM 'CRX_Users' WHERE 'Group'='%s'"
+local removeUsersQuery = "DELETE FROM 'CRX_Users' WHERE 'Name'='%s'"
 
 function DatabaseClass:RemoveUserGroup(group)
 	if !string.IsValid(group) then return end
@@ -122,10 +170,9 @@ function DatabaseClass:RemoveUserGroup(group)
 	if !self:UserGroupExists(group) then return end
 
 	-- Unregister the usergroup from CAMI.
-	CAMI.UnregisterUsergroup(userGroup, "CRX")
+	CAMI.UnregisterUsergroup(userGroup, sourceString)
 
-	-- Remove the usergroup from our cache.
-	self.UserGroups[group] = nil
+	if CLIENT then return end
 
 	-- TODO: Network with net class.
 

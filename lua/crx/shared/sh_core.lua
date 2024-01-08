@@ -9,3 +9,6 @@ CRXCommand = CRXCommandClass()
 
 -- Construct Database Class
 CRXDatabase = CRXDatabaseClass()
+
+-- Construct Net Class
+CRXNet = CRXNetClass()

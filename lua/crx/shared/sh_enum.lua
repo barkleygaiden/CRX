@@ -11,3 +11,7 @@ CRX_PARAMETER_NUMBER = 4
 CRX_PARAMETER_STRING = 8
 CRX_PARAMETER_ENTITY = 16
 CRX_PARAMETER_PLAYER = 32
+
+-- Network strings
+util.AddNetworkString("CRX_NetworkUser")
+util.AddNetworkString("CRX_NetworkUserGroup")

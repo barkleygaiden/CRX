@@ -19,5 +19,6 @@ hook.Add("SetupMove", "CRXPlayerInit", function(ply, mv, cmd)
 
     loadQueue[ply] = nil
 
- 	-- TODO: Make net class
+    -- Networks all users and usergroups to the connected player.
+ 	CRXNet:Initialize(ply)
 end)
