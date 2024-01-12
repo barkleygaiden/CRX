@@ -8,6 +8,10 @@ AddCSLuaFile("crx/shared/sh_database.lua")
 AddCSLuaFile("crx/shared/sh_net.lua")
 AddCSLuaFile("crx/shared/sh_meta.lua")
 
+if SERVER then
+    AddCSLuaFile("crx/client/cl_gui.lua")
+end
+
 -- Includes
 include("crx/shared/sh_enum.lua")
 include("crx/shared/sh_crx.lua")
@@ -17,6 +21,10 @@ include("crx/shared/sh_command.lua")
 include("crx/shared/sh_database.lua")
 include("crx/shared/sh_net.lua")
 include("crx/shared/sh_meta.lua")
+
+if CLIENT then
+    include("crx/client/cl_gui.lua")
+end
 
 if SERVER then
     include("crx/shared/sv_hooks.lua")
