@@ -1,4 +1,4 @@
-CRXCategoryClass = CRXCategoryClass or CRX:NewClass()
+CRXCategoryClass = CRXCategoryClass or chicagoRP.NewClass()
 
 local CategoryClass = CRXCategoryClass
 

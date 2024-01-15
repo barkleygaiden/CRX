@@ -12,3 +12,8 @@ CRXDatabase = CRXDatabaseClass()
 
 -- Construct Net Class
 CRXNet = CRXNetClass()
+
+-- Construct GUI Class
+if CLIENT then
+	CRXGUI = CRXGUIClass()
+end

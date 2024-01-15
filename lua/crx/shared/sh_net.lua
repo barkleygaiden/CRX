@@ -1,4 +1,4 @@
-CRXNetClass = CRXNetClass or CRX:NewClass()
+CRXNetClass = CRXNetClass or chicagoRP.NewClass()
 
 local NetClass = CRXNetClass
 

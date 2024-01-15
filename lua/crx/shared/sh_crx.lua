@@ -1,37 +1,8 @@
--- helper for creating classes
-local function NewClass()
-    local newclass = {}
-
-    local metatable = {}
-    newclass.__index = newclass
-
-    metatable.__call = function(tbl, ...)
-        local obj = setmetatable({}, newclass)
-
-        if obj.__constructor then
-            obj:__constructor(...)
-        end
-
-        return obj
-    end
-
-    setmetatable(newclass, metatable)
-
-    return newclass
-end
-
-CRXClass = CRXClass or NewClass()
+CRXClass = CRXClass or chicagoRP.NewClass()
 
 function CRXClass:__constructor()
 	self.Categories = {}
 	self.Commands = {}
-	self.CategoryCount = 0
-
-	self.Font = "DermaDefault"
-	self.InfoString = string.format("CLX Admin Mod :: CRP Collective | CRX v%i", CRX_VERSION)
-
-    self.ThemeColor = chicagoRP.GetSecondaryColor(true)
-    self.ThemeColor.a = 200
 
     -- Adds the primary command
     concommand.Add("crx", self:DoCommand)
@@ -41,51 +12,6 @@ local classString = "[CRX] - Core Class"
 
 function CRXClass:__tostring()
 	return classString
-end
-
-local dateParams = "%I:%M:%S %p"
-
-function CRXClass:OpenMenu()
-    self.Frame = vgui.Create("DFrame")
-    self.Frame:SetSize(1200, 840)
-    self.Frame:Center()
-    self.Frame:SetTitle("")
-    self.Frame:MakePopup()
-    self.Frame:SetKeyboardInputEnabled(false)
-
-    self.Sheet = vgui.Create("DPropertySheet", self.Frame)
-
-    self.InfoBar = vgui.Create("DPanel", self.Frame)
-    self.InfoBar:SetSize(1200 - (1200 * 0.05), 840 - (840 * 0.95))
-    self.InfoBar:CenterHorizontal()
-    self.InfoBar:SetY(839)
-    self.InfoBar:NoClipping(true)
-
-    function self.InfoBar:Paint(w, h)
-    	draw.RoundedBoxEx(4, 0, 1, w, h, self.ThemeColor, false, false, true, true)
-
-    	local centerY = h * 0.5 - select(2, surface.GetTextSize(self.InfoString)) * 0.5
-
-    	-- Version text
-    	surface.SetTextPos(5, centerY)
-    	surface.SetTextColor(0, 0, 0, 255)
-    	surface.DrawText(self.InfoString)
-
-    	-- Time text
-    	local timeString = os.date(dateParams)
-
-    	draw.DrawText(timeString, self.Font, w - 5, centerY, color_black, TEXT_ALIGN_RIGHT)
-    end
-end
-
-function CRXClass:CloseMenu()
-	if !IsValid(self.Frame) then return end
-
-	self.Frame:AlphaTo(0, 0.5, 0, function(data, panel)
-		if !IsValid(self.Frame) then return end
-
-		self.Frame:Close()
-	end)
 end
 
 function CRXClass:GetCommands()
@@ -138,6 +64,7 @@ function CRXClass:CategoryExists(name)
 end
 
 local helpString = "help"
+local menuString = "menu"
 local CRXColor = Color(200, 0, 0, 255)
 local clientColor = Color(255, 241, 122, 200)
 local serverColor = Color(136, 221, 255, 255)
@@ -160,6 +87,13 @@ function CRXClass:DoCommand(ply, cmd, args, argstring)
 
 	local commandString = args[1]
 
+	-- Menu command triggered, open the GUI menu.
+	if commandString == menuString then
+		CRXGUI:OpenMenu()
+
+		return
+	end
+
 	-- Help command triggered but with no arg provided, show more help
 	if commandString == helpString and !args[2] then
 		MsgC(color_white, "[", CRXColor, "CRX", color_white, "] - ", GetStateColor(), "Show all commands: crx help *")
@@ -180,9 +114,4 @@ function CRXClass:DoCommand(ply, cmd, args, argstring)
 
 		return
 	end
-end
-
--- NOTE: Helper for creating new classes
-function CRXClass:NewClass()
-	return NewClass()
 end

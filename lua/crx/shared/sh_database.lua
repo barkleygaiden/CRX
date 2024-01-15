@@ -1,4 +1,4 @@
-CRXDatabaseClass = CRXDatabaseClass or CRX:NewClass()
+CRXDatabaseClass = CRXDatabaseClass or chicagoRP.NewClass()
 
 local DatabaseClass = CRXDatabaseClass
 

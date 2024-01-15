@@ -1,4 +1,4 @@
-CRXCommandClass = CRXCommandClass or CRX:NewClass()
+CRXCommandClass = CRXCommandClass or chicagoRP.NewClass()
 
 local CommandClass = CRXCommandClass
 
