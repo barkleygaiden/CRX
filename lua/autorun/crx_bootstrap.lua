@@ -1,33 +1,37 @@
 -- CSLua
 AddCSLuaFile("crx/shared/sh_enum.lua")
 AddCSLuaFile("crx/shared/sh_crx.lua")
-AddCSLuaFile("crx/shared/sh_core.lua")
 AddCSLuaFile("crx/shared/sh_category.lua")
 AddCSLuaFile("crx/shared/sh_command.lua")
 AddCSLuaFile("crx/shared/sh_database.lua")
 AddCSLuaFile("crx/shared/sh_net.lua")
-AddCSLuaFile("crx/shared/sh_meta.lua")
 
 if SERVER then
+    AddCSLuaFile("crx/client/cl_basetabs.lua")
     AddCSLuaFile("crx/client/cl_gui.lua")
 end
+
+-- Core can only be loaded after all the class files are
+AddCSLuaFile("crx/shared/sh_core.lua")
+AddCSLuaFile("crx/shared/sh_hooks.lua")
+AddCSLuaFile("crx/shared/sh_meta.lua")
 
 -- Includes
 include("crx/shared/sh_enum.lua")
 include("crx/shared/sh_crx.lua")
-include("crx/shared/sh_core.lua")
 include("crx/shared/sh_category.lua")
 include("crx/shared/sh_command.lua")
 include("crx/shared/sh_database.lua")
 include("crx/shared/sh_net.lua")
+
+-- Core can only be loaded after all the class files are
+include("crx/shared/sh_core.lua")
+include("crx/shared/sh_hooks.lua")
 include("crx/shared/sh_meta.lua")
 
 if CLIENT then
+    include("crx/client/cl_basetabs.lua")
     include("crx/client/cl_gui.lua")
-end
-
-if SERVER then
-    include("crx/shared/sv_hooks.lua")
 end
 
 -- Module loader

@@ -1,9 +1,6 @@
 CRXNetClass = CRXNetClass or chicagoRP.NewClass()
 
 local NetClass = CRXNetClass
-
--- No constructor here because we don't need one ;)
-
 local emptystring = ""
 
 function NetClass:Initialize(ply)
@@ -63,6 +60,8 @@ function NetClass:NetworkUserGroup(group, delete)
 	if CLIENT then return end
 	if delete == nil then delete = true end
 
+	local groupName = (istable(group) and group.Name) or group
+
 	net.Start("CRX_NetworkUserGroup")
 
 	-- True: Add/Keep
@@ -70,7 +69,7 @@ function NetClass:NetworkUserGroup(group, delete)
 	net.WriteBool(delete)
 	net.WriteUInt(1, 12)
 
-	net.WriteString(group.Name)
+	net.WriteString(groupName)
 
 	-- If we're deleting the group, send the net message as-is.
 	if !delete then net.Broadcast() return end
@@ -84,6 +83,8 @@ end
 function NetClass:ReceiveUserGroup(len)
 	if SERVER then return end
 
+	-- Get our database object outside of the loop.
+	local database = CRX:GetDatabase()
 	local shouldKeep = net.ReadBool()
 	local userGroupCount = net.ReadUInt(12)
 
@@ -91,14 +92,14 @@ function NetClass:ReceiveUserGroup(len)
 		local groupName = net.ReadString()
 
 		if !shouldKeep then
-			CRXDatabase:RemoveUserGroup(groupName)
+			database:RemoveUserGroup(groupName)
 
 			continue
 		end
 
 		local inheritance = net.ReadString()
 
-		CRXDatabase:AddUserGroup(groupName, inheritance)
+		database:AddUserGroup(groupName, inheritance)
 	end
 end
 
@@ -147,13 +148,15 @@ end
 function NetClass:ReceiveUser(len)
 	if SERVER then return end
 
+	-- Get our database object outside of the loop.
+	local database = CRX:GetDatabase()
 	local userCount = net.ReadUInt(12)
 
 	for i = 1, userCount do
 		local steamID = net.ReadString()
 		local groupName = net.ReadString() or userString
 
-		CRXDatabase:SetUserGroup(steamID, groupName)
+		database:SetUserGroup(steamID, groupName)
 	end
 end
 
@@ -226,6 +229,7 @@ function NetClass:ReceiveGroupChange(len, ply)
 	if CLIENT then return end
 	if !ply:IsSuperAdmin() then return end
 
+	local database = CRX:GetDatabase()
 	local changingName = net.ReadBool()
 	local groupName = sql.SQLStr(net.ReadString())
 	local nameOrInheritance = sql.SQLStr(net.ReadString())
@@ -234,12 +238,12 @@ function NetClass:ReceiveGroupChange(len, ply)
 		-- Make sure new name is not already taken.
 		if CAMI.GetUserGroup(nameOrInheritance) then return end
 
-		CRXDatabase:ChangeUserGroupName(groupName, nameOrInheritance)
+		database:ChangeUserGroupName(groupName, nameOrInheritance)
 	else
 		-- Make sure our new inheritor exists.
 		if CAMI.GetUserGroup(nameOrInheritance) then return end
 
-		CRXDatabase:ChangeUserGroupInheritance(groupName, nameOrInheritance)
+		database:ChangeUserGroupInheritance(groupName, nameOrInheritance)
 	end
 end
 

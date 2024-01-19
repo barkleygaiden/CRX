@@ -14,6 +14,30 @@ function CRXClass:__tostring()
 	return classString
 end
 
+function CRXClass:GetDatabase()
+	return self.Database
+end
+
+function CRXClass:SetDatabase(database)
+	self.Database = database
+end
+
+function CRXClass:GetNet()
+	return self.Net
+end
+
+function CRXClass:SetNet(nett)
+	self.Net = nett
+end
+
+function CRXClass:GetGUI()
+	return self.GUI
+end
+
+function CRXClass:SetGUI(guii)
+	self.GUI = guii
+end
+
 function CRXClass:GetCommands()
 	return self.Commands
 end
@@ -89,7 +113,9 @@ function CRXClass:DoCommand(ply, cmd, args, argstring)
 
 	-- Menu command triggered, open the GUI menu.
 	if commandString == menuString then
-		CRXGUI:OpenMenu()
+		local GUI = CRX:GetGUI()
+
+		GUI:OpenMenu()
 
 		return
 	end

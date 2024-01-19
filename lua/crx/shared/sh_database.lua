@@ -6,6 +6,7 @@ function DatabaseClass:__constructor()
 	-- [steamid] -- CAMI_USERGROUP.Name
 	self.Users = {}
 
+	-- True if our SQL database was initialized.
 	self.Valid = false
 end
 
@@ -66,7 +67,10 @@ function DatabaseClass:SetUserGroup(steamid, group)
 
 	if CLIENT then return end
 
-	-- TODO: Network with net class.
+	local nett = CRX:GetNet()
+
+	-- Network the new user change to all clients.
+	nett:NetworkUser(steamid, group)
 
 	-- TODO: How does string.format handle nil?
 	local query = string.format(setUserGroupQuery, steamid, group)
@@ -91,8 +95,10 @@ function DatabaseClass:ChangeUserGroupName(group, name)
 	local userGroup = CAMI.GetUsergroup(group)
 	userGroup.Name = shouldDelete or userGroup.Name
 
+	local nett = CRX:GetNet()
+
 	-- Network the new CAMI_USERGROUP changes to all clients.
-	CRXNet:NetworkUserGroup(userGroup)
+	nett:NetworkUserGroup(userGroup)
 
 	-- TODO: How does string.format handle nil?
 	local deleteQuery = string.format(removeUserGroupQuery, userGroup.Name)
@@ -111,8 +117,11 @@ function DatabaseClass:ChangeUserGroupInheritance(group, inheritance)
 	local userGroup = CAMI.GetUsergroup(group)
 	userGroup.Inherits = inheritance
 
+	-- Net class is stored in our main class
+	local nett = CRX:GetNet()
+
 	-- Network the new CAMI_USERGROUP changes to all clients.
-	CRXNet:NetworkUserGroup(userGroup)
+	nett:NetworkUserGroup(userGroup)
 
 	-- TODO: How does string.format handle nil?
 	local changeQuery = string.format(changeUserGroupQuery, userGroup.Name, userGroup.Inherits)
@@ -149,7 +158,10 @@ function DatabaseClass:AddUserGroup(group, inheritance)
 
 	if CLIENT then return end
 
-	-- TODO: Network with net class.
+	local nett = CRX:GetNet()
+
+	-- Network the new CAMI_USERGROUP object to all clients.
+	nett:NetworkUserGroup(userGroup)
 
 	local query = string.format(addUserGroupQuery, group, inheritance)
 
@@ -170,11 +182,14 @@ function DatabaseClass:RemoveUserGroup(group)
 	if !self:UserGroupExists(group) then return end
 
 	-- Unregister the usergroup from CAMI.
-	CAMI.UnregisterUsergroup(userGroup, sourceString)
+	CAMI.UnregisterUsergroup(group, sourceString)
 
 	if CLIENT then return end
 
-	-- TODO: Network with net class.
+	local nett = CRX:GetNet()
+
+	-- Network the CAMI_USERGROUP removal to all clients.
+	nett:NetworkUserGroup(group, true)
 
 	local groupQuery = string.format(removeUserGroupQuery, group)
 	local userQuery = string.format(removeUsersQuery, group)

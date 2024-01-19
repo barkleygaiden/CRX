@@ -8,12 +8,20 @@ CRXCategory = CRXCategoryClass()
 CRXCommand = CRXCommandClass()
 
 -- Construct Database Class
-CRXDatabase = CRXDatabaseClass()
+local database = CRXDatabaseClass()
+
+CRX:SetDatabase(database)
 
 -- Construct Net Class
-CRXNet = CRXNetClass()
+local nett = CRXNetClass()
+
+CRX:SetNet(nett)
 
 -- Construct GUI Class
 if CLIENT then
-	CRXGUI = CRXGUIClass()
+	local guii = CRXGUIClass()
+
+	CRX:SetGUI(guii)
 end
+
+hook.Run("CRX_Initialized")
