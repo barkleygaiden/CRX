@@ -14,6 +14,12 @@ function CRXClass:__tostring()
 	return classString
 end
 
+function CRXClass:Think()
+	if CLIENT and self.GUI then
+		self.GUI:Think()
+	end
+end
+
 function CRXClass:GetDatabase()
 	return self.Database
 end

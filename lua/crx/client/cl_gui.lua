@@ -45,6 +45,13 @@ function CRXClass:OpenMenu()
 
     -- Adds the tabs CRX comes with (commands, groups, settings) along with custom ones.
     self:BuildTabs(frame)
+
+    -- Get the DPropertySheet and first tab.
+    local sheet = frame:GetChild(1)
+    local tabInfo = sheet.Items[1]
+
+    -- Set the active tab to the first tab (commands).
+    sheet:SetActiveTab(tabInfo.Tab)
 end
 
 function GUIClass:CloseMenus()
@@ -89,6 +96,23 @@ function GUIClass:BuildBasePanels()
     frame:SetMinWidth(600)
     frame:SetMinHeight(420)
 
+    local oPerformLayout = frame.PerformLayout   
+
+    function frame:PerformLayout(w, h)
+        -- Scale our frame's buttons.
+        oPerformLayout(self, w, h)
+
+        -- Get the DPropertySheet and tabs.
+        local sheet = self:GetChild(1)
+        local activeTab = sheet:GetActiveTab()
+
+        -- If we don't have an active tab, then stop.
+        if !IsValid(activeTab) then return end
+
+        -- Invalidate the tab's main panel.
+        activeTab.Panel:InvalidateLayout(true)
+    end
+
     local oldOnMouseReleased = frame.OnMouseReleased
     local lastW, lastH = self.FrameWidth, self.FrameHeight
 
@@ -110,6 +134,28 @@ function GUIClass:BuildBasePanels()
 
     local sheet = vgui.Create("DPropertySheet", frame)
     sheet:Dock(FILL)
+
+    local oldCrossFade = sheet.CrossFade
+
+    function sheet:CrossFade(anim, delta, data)
+        oldCrossFade(anim, delta, data)
+
+        if !data or !IsValid(data.OldTab) or !IsValid(data.NewTab) then return end
+
+        local old = data.OldTab:GetPanel()
+        local new = data.NewTab:GetPanel()
+
+        -- Check if the animation has just started.
+        if IsValid(new) and anim.Started then
+            -- Add our new tab's panels.
+            data.NewTab.Callback(new)
+        end
+
+        -- Clear the last tab's panels.
+        if IsValid(old) and anim.Finished then
+            old:Clear()
+        end
+    end
 
     infoBar = vgui.Create("DPanel", frame)
     infoBar:SetSize(self.FrameWidth - (self.FrameWidth * 0.05), self.FrameHeight - (self.FrameHeight * 0.95))
@@ -134,12 +180,16 @@ end
 function GUIClass:BuildTabs(frame)
     if !IsValid(frame) then return end
 
+    -- Get the DPropertySheet.
     local sheet = frame:GetChild(1)
 
     for i = 1, #self.Tabs do
         local tab = self.Tabs[i]
+        local parentPanel = vgui.Create("DPanel", sheet)
+        local tabTable = sheet:AddSheet(tab.Name, parentPanel, tab.Icon)
 
-        -- TODO: Make DPropertySheet's DTabs only have their panels alive when tabbed into them.
+        -- Store our callback in the DTab for later use.
+        tabTable.Tab.Callback = tab.Callback
     end
 end
 

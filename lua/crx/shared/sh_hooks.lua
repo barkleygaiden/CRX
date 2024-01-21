@@ -26,8 +26,8 @@ if SERVER then
 else
     -- TODO: Make this shared
     hook.Add("Think", "CRXThink", function()
-        if !CRXGUI then return end
+        if !CRX then return end
         
-        CRXGUI:Think()
+        CRX:Think()
     end
 end
