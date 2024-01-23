@@ -48,10 +48,10 @@ function CRXClass:OpenMenu()
 
     -- Get the DPropertySheet and first tab.
     local sheet = frame:GetChild(1)
-    local tabInfo = sheet.Items[1]
+    local tabTable = sheet.Items[1]
 
     -- Set the active tab to the first tab (commands).
-    sheet:SetActiveTab(tabInfo.Tab)
+    sheet:SetActiveTab(tabTable.Tab)
 end
 
 function GUIClass:CloseMenus()
@@ -102,15 +102,21 @@ function GUIClass:BuildBasePanels()
         -- Scale our frame's buttons.
         oPerformLayout(self, w, h)
 
-        -- Get the DPropertySheet and tabs.
+        -- DPropertySheet scales the active DTab's panel internally.
+        -- However, we still need to call our custom PerformLayout method.
         local sheet = self:GetChild(1)
-        local activeTab = sheet:GetActiveTab()
+        local tab = sheet:GetActiveTab()
 
-        -- If we don't have an active tab, then stop.
-        if !IsValid(activeTab) then return end
+        -- This should never happen but it's best to check anyways.
+        if !IsValid(tab) then return end
 
-        -- Invalidate the tab's main panel.
-        activeTab.Panel:InvalidateLayout(true)
+        local tabInfo = self.Tabs[tab.TabIndex]
+
+        -- Modules aren't always using PerformLayout to scale their panels.
+        if !isfunction(tabInfo.PerformLayoutCallback) then return end
+
+        -- Call the tab's custom PerformLayout callback.
+        tabInfo.PerformLayoutCallback(tab:GetPanel())
     end
 
     local oldOnMouseReleased = frame.OnMouseReleased
@@ -147,8 +153,10 @@ function GUIClass:BuildBasePanels()
 
         -- Check if the animation has just started.
         if IsValid(new) and anim.Started then
+            local tabInfo = self.Tabs[data.NewTab.TabIndex]
+
             -- Add our new tab's panels.
-            data.NewTab.Callback(new)
+            tabInfo.BuildCallback(new)
         end
 
         -- Clear the last tab's panels.
@@ -188,14 +196,14 @@ function GUIClass:BuildTabs(frame)
         local parentPanel = vgui.Create("DPanel", sheet)
         local tabTable = sheet:AddSheet(tab.Name, parentPanel, tab.Icon)
 
-        -- Store our callback in the DTab for later use.
-        tabTable.Tab.Callback = tab.Callback
+        -- Store the table index in the DTab for later use.
+        tabTable.Tab.TabIndex = i
     end
 end
 
 local defaultIcon = "icon16/link.png"
 
-function GUIClass:AddTab(name, icon, callback)
+function GUIClass:AddTab(name, icon, callback, performlayout)
     if !string.IsValid(name) then return end
 
     -- You need to provide a callback to build your panels in.
@@ -204,7 +212,8 @@ function GUIClass:AddTab(name, icon, callback)
     local tab = {}
     tab.Name = name
     tab.Icon = icon or defaultIcon
-    tab.Callback = callback
+    tab.BuildCallback = callback
+    tab.PerformLayout = performlayout
 
     table.insert(self.Tabs, tab)
 end
@@ -212,5 +221,6 @@ end
 function GUIClass:RemoveTab(name)
     if !string.IsValid(name) then return end
 
+    -- No hashtable so we have to do a loop.
     table.RemoveByValue(self.Tabs, name)
 end

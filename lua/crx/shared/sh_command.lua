@@ -72,8 +72,6 @@ function CommandClass:SetName(name)
 	-- Set the new command name.
 	self.Name = name
 
-	local commands = CRX:GetCommands()
-
 	-- Readds command to the main class' commands table.
 	commands[self.Name] = self
 end
@@ -110,6 +108,35 @@ function CommandClass:SetDefaultPermissions(perms)
 	if !perms then return end
 
 	self.DefaultPermissions = perms
+end
+
+local groupPermissions = {
+	user = CRX_USER,
+	admin = CRX_ADMIN,
+	superadmin = CRX_SUPERADMIN
+}
+
+function CommandClass:HasPermissions(object)
+	-- Object can be player or a usergroup name.
+	if !object then return end
+
+	-- No, you cannot use non-player entities with this.
+	if IsEntity(object) and object:IsPlayer() then return end
+
+	local isString = isstring(object)
+
+	-- Usergroup name must be valid.
+	if isString and !string.IsValid(object) then return end
+
+	-- Get our usergroup name if the object is a player.
+	local userGroupName = (isString and object) or object:GetUserGroup()
+
+	-- Get our usergroup's root inheritance.
+	local inheritance = CAMI.InheritanceRoot(object)
+	local permissions = groupPermissions[inheritance]
+
+	-- True if our group is equal or higher than the permissions enum.
+	return permissions >= self.DefaultPermissions
 end
 
 function CommandClass:GetCallback(func)

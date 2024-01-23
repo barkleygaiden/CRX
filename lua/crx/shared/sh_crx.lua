@@ -2,6 +2,7 @@ CRXClass = CRXClass or chicagoRP.NewClass()
 
 function CRXClass:__constructor()
 	self.Categories = {}
+	self.CategoryCommands = {}
 	self.Commands = {}
 
     -- Adds the primary command
@@ -48,6 +49,10 @@ function CRXClass:GetCommands()
 	return self.Commands
 end
 
+function CRXClass:GetCommandsFromCategory(category)
+	return self.CategoryCommands[category:GetName()]
+end
+
 function CRXClass:GetCommand(name)
 	if !string.IsValid(name) then return end
 
@@ -76,6 +81,9 @@ function CRXClass:AddCategory(category)
 	local name = category:GetName()
 
 	self.Categories[name] = category
+
+	-- Creates the hashtable used to fetch categories commands more quickly.
+	self.CategoryCommands[name] = {}
 end
 
 -- I don't know why you would want to remove a category but here you go ¯\_(ツ)_/¯
@@ -85,6 +93,7 @@ function CRXClass:RemoveCategory(category)
 	local name = category:GetName()
 
 	self.Categories[name] = nil
+	self.CategoryCommands[name] = nil
 end
 
 function CRXClass:CategoryExists(name)
