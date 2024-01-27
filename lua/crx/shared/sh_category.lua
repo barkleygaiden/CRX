@@ -24,26 +24,6 @@ function CategoryClass:IsValid()
 	return string.IsValid(self.Name)
 end
 
-function CategoryClass:New(name)
-	-- Without a name, we can't possibly know what category the invoker wants.
-	if !string.IsValid(name) then return end
-
-	local fetchedCatgeory = CRX:GetCategory(name)
-
-	-- If a category with the same name already exists, return it.
-	if fetchedCatgeory and fetchedCatgeory:IsValid() then return fetchedCatgeory end
-
-	local newCategory = setmetatable({}, self)
-
-	-- Sets our new category's name
-	self.Name = name
-
-	-- Adds category to the main class table.
-	CRX:AddCategory(newCategory)
-
-	return newCategory
-end
-
 function CategoryClass:Remove()
 	-- Removes category from the main class table.
 	CRX:RemoveCategory(self)

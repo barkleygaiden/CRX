@@ -7,8 +7,10 @@ AddCSLuaFile("crx/shared/sh_database.lua")
 AddCSLuaFile("crx/shared/sh_net.lua")
 
 if SERVER then
-    AddCSLuaFile("crx/client/cl_basetabs.lua")
     AddCSLuaFile("crx/client/cl_gui.lua")
+    AddCSLuaFile("crx/client/cl_tab_commands.lua")
+    AddCSLuaFile("crx/client/cl_tab_groups.lua")
+    AddCSLuaFile("crx/client/cl_tab_settings.lua")
 end
 
 -- Core can only be loaded after all the class files are
@@ -24,15 +26,18 @@ include("crx/shared/sh_command.lua")
 include("crx/shared/sh_database.lua")
 include("crx/shared/sh_net.lua")
 
+if CLIENT then
+    include("crx/client/cl_gui.lua")
+    include("crx/client/cl_tab_commands.lua")
+    include("crx/client/cl_tab_groups.lua")
+    include("crx/client/cl_tab_settings.lua")
+end
+
 -- Core can only be loaded after all the class files are
+include("crx/shared/sh_enum.lua")
 include("crx/shared/sh_core.lua")
 include("crx/shared/sh_hooks.lua")
 include("crx/shared/sh_meta.lua")
-
-if CLIENT then
-    include("crx/client/cl_basetabs.lua")
-    include("crx/client/cl_gui.lua")
-end
 
 -- Module loader
 local folderString = "crx/modules/%s/%s"

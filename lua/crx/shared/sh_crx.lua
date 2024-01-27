@@ -5,8 +5,22 @@ function CRXClass:__constructor()
 	self.CategoryCommands = {}
 	self.Commands = {}
 
-    -- Adds the primary command
+	-- Construct our database class.
+	self.Database = CRXDatabaseClass()
+
+	-- Construct our net class.
+	self.Net = CRXNetClass()
+
+	-- Construct our GUI class.
+	if CLIENT then
+		self.GUI = CRXGUIClass()
+	end
+
+    -- Adds the primary command.
     concommand.Add("crx", self:DoCommand)
+
+    -- Runs our initialization hook.
+    hook.Run("CRX_Initialized")
 end
 
 local classString = "[CRX] - Core Class"
@@ -25,24 +39,12 @@ function CRXClass:GetDatabase()
 	return self.Database
 end
 
-function CRXClass:SetDatabase(database)
-	self.Database = database
-end
-
 function CRXClass:GetNet()
 	return self.Net
 end
 
-function CRXClass:SetNet(nett)
-	self.Net = nett
-end
-
 function CRXClass:GetGUI()
 	return self.GUI
-end
-
-function CRXClass:SetGUI(guii)
-	self.GUI = guii
 end
 
 function CRXClass:GetCommands()
@@ -59,6 +61,23 @@ function CRXClass:GetCommand(name)
 	return self.Commands[name]
 end
 
+function CRXClass:Command(name)
+	-- Without a name, command cannot possibly be valid.
+	if !string.IsValid(name) then return end
+
+	local fetchedCommand = self:GetCommand(name)
+
+	-- If a command with the same name already exists, return it.
+	if fetchedCommand and fetchedCommand:IsValid() then return fetchedCommand end
+
+	local newCommand = setmetatable({}, CRXCommandClass())
+
+	-- Sets our new command's name
+	newCommand.Name = name
+
+	return newCommand
+end
+
 function CRXClass:CommandExists(name)
 	local command = self.Commands[name]
 
@@ -73,6 +92,26 @@ function CRXClass:GetCategory(name)
 	if !string.IsValid(name) then return end
 
 	return self.Categories[name]
+end
+
+function CRXClass:Category(name)
+	-- Without a name, we can't possibly know what category the invoker wants.
+	if !string.IsValid(name) then return end
+
+	local fetchedCatgeory = self:GetCategory(name)
+
+	-- If a category with the same name already exists, return it.
+	if fetchedCatgeory and fetchedCatgeory:IsValid() then return fetchedCatgeory end
+
+	local newCategory = setmetatable({}, CRXCategoryClass())
+
+	-- Sets our new category's name
+	newCategory.Name = name
+
+	-- Adds category to the main class table.
+	self:AddCategory(newCategory)
+
+	return newCategory
 end
 
 function CRXClass:AddCategory(category)

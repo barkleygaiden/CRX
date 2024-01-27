@@ -4,6 +4,8 @@ local CommandClass = CRXCommandClass
 
 function CommandClass:__constructor()
 	self.Params = {}
+
+	self.HasEntityParameter = false
 	self.DefaultPermissions = CRX_SUPERADMIN
 end
 
@@ -23,23 +25,6 @@ end
 
 function CommandClass:IsValid()
 	return string.IsValid(self.Name) and isfunction(self.Callback)
-end
-
-function CommandClass:New(name)
-	-- Without a name, command cannot possibly be valid.
-	if !string.IsValid(name) then return end
-
-	local fetchedCommand = CRX:GetCommand(name)
-
-	-- If a command with the same name already exists, return it.
-	if fetchedCommand and fetchedCommand:IsValid() then return fetchedCommand end
-
-	local newCommand = setmetatable({}, self)
-
-	-- Sets our new command's name
-	self.Name = name
-
-	return newCommand
 end
 
 function CommandClass:Remove()
@@ -94,8 +79,21 @@ function CommandClass:GetParameters()
 	return self.Parameters
 end
 
+-- TODO: Make a parameter object?
+
 function CommandClass:AddParameter(typ)
 	if !typ then return end
+
+	-- Hacky method of avoiding table.HasValue.
+	if !self.HasEntityParameter and typ >= 4 then
+		self.HasEntityParameter = true
+
+		-- Another method to avoid a break loop.
+		self.EntityType = typ
+
+		-- Yet another method to avoid a break loop.
+		self.EntityParameterPosition = #self.Parameters + 1
+	end
 
 	table.insert(self.Parameters, typ)
 end

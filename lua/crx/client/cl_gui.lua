@@ -47,7 +47,7 @@ function CRXClass:OpenMenu()
     self:BuildTabs(frame)
 
     -- Get the DPropertySheet and first tab.
-    local sheet = frame:GetChild(1)
+    local sheet = frame:GetSheet()
     local tabTable = sheet.Items[1]
 
     -- Set the active tab to the first tab (commands).
@@ -84,13 +84,13 @@ function GUIClass:CloseMenu(frame)
 	end)
 end
 
-function GUIClass:BuildBasePanels()
-    -- We have to do this to access our class inside of panel functions.
-    -- Kind of hacky, but it works and doesn't hurt readability too much.
-    local self2 = self
+function GUIClass:GetFrames()
+    return self.Frames
+end
 
+local function BuildFrame(self2)
     local frame = vgui.Create("DFrame")
-    frame:SetSize(self.FrameWidth, self.FrameHeight)
+    frame:SetSize(self2.FrameWidth, self2.FrameHeight)
     frame:Center()
     frame:SetSizable(true)
     frame:SetMinWidth(600)
@@ -100,11 +100,17 @@ function GUIClass:BuildBasePanels()
 
     function frame:PerformLayout(w, h)
         -- Scale our frame's buttons.
-        oPerformLayout(self, w, h)
+        oPerformLayout(self, w, h) 
+
+        -- Scale our infobar's size.
+        self.InfoBar:SetSize(w - (w * 0.05), h - (h * 0.95))
+
+        -- Keep the infobar at the bottom of the frame.
+        self.InfoBar:SetX(w * 0.5 - (w - (w * 0.05)) * 0.5, h - 1)
 
         -- DPropertySheet scales the active DTab's panel internally.
         -- However, we still need to call our custom PerformLayout method.
-        local sheet = self:GetChild(1)
+        local sheet = self:GetSheet()
         local tab = sheet:GetActiveTab()
 
         -- This should never happen but it's best to check anyways.
@@ -120,7 +126,7 @@ function GUIClass:BuildBasePanels()
     end
 
     local oldOnMouseReleased = frame.OnMouseReleased
-    local lastW, lastH = self.FrameWidth, self.FrameHeight
+    local lastW, lastH = self2.FrameWidth, self2.FrameHeight
 
     function frame:OnMouseReleased(keycode)
         -- If the keycode isn't mouse1, the frame wasn't being resized.
@@ -138,6 +144,14 @@ function GUIClass:BuildBasePanels()
         self2.FrameWidth, self2.FrameHeight = newW, newH
     end
 
+    function frame:GetSheet()
+        return self.Sheet
+    end
+
+    return frame
+end
+
+local function BuildSheet(frame)
     local sheet = vgui.Create("DPropertySheet", frame)
     sheet:Dock(FILL)
 
@@ -165,9 +179,11 @@ function GUIClass:BuildBasePanels()
         end
     end
 
-    infoBar = vgui.Create("DPanel", frame)
-    infoBar:SetSize(self.FrameWidth - (self.FrameWidth * 0.05), self.FrameHeight - (self.FrameHeight * 0.95))
-    infoBar:SetX(self.FrameWidth * 0.5 - infoBar:GetWide() * 0.5, self.FrameHeight - 1)
+    return sheet
+end
+
+local function BuildInfoBar(frame, self2)
+    local infoBar = vgui.Create("DPanel", frame)
     infoBar:NoClipping(true)
 
     function infoBar:Paint(w, h)
@@ -183,13 +199,29 @@ function GUIClass:BuildBasePanels()
         -- Time text
         draw.DrawText(self2.TimeString, self2.Font, w - 5, centerY, color_black, TEXT_ALIGN_RIGHT)
     end
+
+    return infoBar
+end
+
+function GUIClass:BuildBasePanels()
+    -- Builds the DFrame all of our panels are parented to.
+    local frame = BuildFrame(self)
+
+    -- Builds our DPropertySheet.
+    frame.Sheet = BuildSheet(frame)
+
+    -- Builds our infobar based on DPanel.
+    frame.InfoBar = BuildInfoBar(frame, self)
+
+    -- Call PerformLayout immediately to scale our infobar's panel.
+    frame:InvalidateLayout(true)
 end
 
 function GUIClass:BuildTabs(frame)
     if !IsValid(frame) then return end
 
     -- Get the DPropertySheet.
-    local sheet = frame:GetChild(1)
+    local sheet = frame:GetSheet()
 
     for i = 1, #self.Tabs do
         local tab = self.Tabs[i]

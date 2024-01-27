@@ -1,8 +1,8 @@
--- Create a new category object, returns existing object if category already exists
-local utilityCategory = CRXCategory:New("utility")
+-- Creates a new category object, returns existing object if category already exists
+local utilityCategory = CRX:Category("utility")
 
--- Create a new command object
-local kickCommand = CRXCommand:New("kick")
+-- Creates a new command object
+local kickCommand = CRX:Command("kick")
 kickCommand:AddParameter(CRX_PARAMETER_PLAYER, "target")
 kickCommand:AddParameter(CRX_PARAMETER_STRING, "reason")
 
