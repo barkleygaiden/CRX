@@ -3,14 +3,14 @@ CRXCommandClass = CRXCommandClass or chicagoRP.NewClass()
 local CommandClass = CRXCommandClass
 
 function CommandClass:__constructor()
-	self.Params = {}
+	self.Parameters = {}
 
-	self.HasEntityParameter = false
+	self.EntityParameter = false
 	self.DefaultPermissions = CRX_SUPERADMIN
 end
 
 local classString = "[CRX] - Command: %s"
-local invalidString = "Invalid!"
+local invalidString = "[NULL]"
 
 function CommandClass:__tostring()
 	return string.format(classString, (self:IsValid() and self.Name) or invalidString)
@@ -79,23 +79,26 @@ function CommandClass:GetParameters()
 	return self.Parameters
 end
 
--- TODO: Make a parameter object?
+function CommandClass:AddParameter(typ, name)
+	if !typ or !name then return end
 
-function CommandClass:AddParameter(typ)
-	if !typ then return end
+	local parameter = CRXParameterClass()
 
-	-- Hacky method of avoiding table.HasValue.
-	if !self.HasEntityParameter and typ >= 4 then
-		self.HasEntityParameter = true
+	-- Set the new parameter type.
+	self.Type = typ
 
-		-- Another method to avoid a break loop.
-		self.EntityType = typ
+	-- Set the new parameter name.
+	self.Name = name
 
-		-- Yet another method to avoid a break loop.
-		self.EntityParameterPosition = #self.Parameters + 1
+	-- Set the new parameter's parent (command).
+	self.Parent = self
+
+	-- Hacky method of avoiding table.HasValue where we store the type to avoid a break loop.
+	if !self.EntityParameter and typ >= 4 then
+		self.EntityParameter = typ
 	end
 
-	table.insert(self.Parameters, typ)
+	table.insert(self.Parameters, parameter)
 end
 
 function CommandClass:GetDefaultPermissions()

@@ -65,6 +65,7 @@ function DatabaseClass:SetUserGroup(steamid, group)
 	-- Cache the usergroup change.
 	self.Users[steamid] = group
 
+	-- Networking and SQL is serverside only.
 	if CLIENT then return end
 
 	local nett = CRX:GetNet()
@@ -156,6 +157,7 @@ function DatabaseClass:AddUserGroup(group, inheritance)
 	-- Register the usergroup with CAMI.
 	CAMI.RegisterUsergroup(userGroup, sourceString)
 
+	-- Networking and SQL is serverside only.
 	if CLIENT then return end
 
 	local nett = CRX:GetNet()
@@ -170,7 +172,7 @@ function DatabaseClass:AddUserGroup(group, inheritance)
 	sql.Commit()
 end
 
-local removeUsersQuery = "DELETE FROM 'CRX_Users' WHERE 'Name'='%s'"
+local removeUsersQuery = "DELETE FROM 'CRX_Users' WHERE 'Group'='%s'"
 
 function DatabaseClass:RemoveUserGroup(group)
 	if !string.IsValid(group) then return end
@@ -184,6 +186,7 @@ function DatabaseClass:RemoveUserGroup(group)
 	-- Unregister the usergroup from CAMI.
 	CAMI.UnregisterUsergroup(group, sourceString)
 
+	-- Networking and SQL is serverside only.
 	if CLIENT then return end
 
 	local nett = CRX:GetNet()

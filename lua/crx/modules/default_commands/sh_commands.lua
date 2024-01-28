@@ -3,10 +3,10 @@ local utilityCategory = CRX:Category("utility")
 
 -- Creates a new command object
 local kickCommand = CRX:Command("kick")
-kickCommand:AddParameter(CRX_PARAMETER_PLAYER, "target")
-kickCommand:AddParameter(CRX_PARAMETER_STRING, "reason")
+local targetParameter = kickCommand:AddParameter(CRX_PARAMETER_PLAYER, "target")
+local reasonParameter = kickCommand:AddParameter(CRX_PARAMETER_STRING, "reason")
+reasonParameter:SetDefault("n/a")
 
-local noneString = "n/a"
 local reasonString = "You were kicked by %s.\nReason: %s"
 local successString = "You kicked %s for Reason: %s"
 local invalidTargetString = "Kick failed, target invalid."
@@ -17,9 +17,8 @@ function kickCommand:Callback(ply, ...)
 
 	if !IsValid(target) then return false, invalidTargetString end
 
-	-- Set reason as n/a if none is provided, insert arg otherwise
-	local reasonArg = (string.IsValid(args[2]) and args[2]) or noneString
-	local reason = string.format(reasonString, ply:Nick(), reasonArg)
+	-- Format our reason string, default reason is done internally if needed.
+	local reason = string.format(reasonString, ply:Nick(), args[2])
 
 	target:Kick(reason)
 

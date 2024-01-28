@@ -7,7 +7,7 @@ function CategoryClass:__constructor()
 end
 
 local classString = "[CRX] - Category: %s"
-local invalidString = "[CRX] - Category: (Invalid!)"
+local invalidString = "[NULL]"
 
 function CategoryClass:__tostring()
 	return string.format(classString, (self:IsValid() and self.Name) or invalidString)

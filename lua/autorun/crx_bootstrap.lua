@@ -1,13 +1,14 @@
 -- CSLua
 AddCSLuaFile("crx/shared/sh_enum.lua")
-AddCSLuaFile("crx/shared/sh_crx.lua")
-AddCSLuaFile("crx/shared/sh_category.lua")
-AddCSLuaFile("crx/shared/sh_command.lua")
-AddCSLuaFile("crx/shared/sh_database.lua")
-AddCSLuaFile("crx/shared/sh_net.lua")
+AddCSLuaFile("crx/shared/classes/sh_crx.lua")
+AddCSLuaFile("crx/shared/classes/sh_category.lua")
+AddCSLuaFile("crx/shared/classes/sh_command.lua")
+AddCSLuaFile("crx/shared/classes/sh_database.lua")
+AddCSLuaFile("crx/shared/classes/sh_net.lua")
+AddCSLuaFile("crx/shared/classes/sh_parameter.lua")
 
 if SERVER then
-    AddCSLuaFile("crx/client/cl_gui.lua")
+    AddCSLuaFile("crx/client/classes/cl_gui.lua")
     AddCSLuaFile("crx/client/cl_tab_commands.lua")
     AddCSLuaFile("crx/client/cl_tab_groups.lua")
     AddCSLuaFile("crx/client/cl_tab_settings.lua")
@@ -20,14 +21,15 @@ AddCSLuaFile("crx/shared/sh_meta.lua")
 
 -- Includes
 include("crx/shared/sh_enum.lua")
-include("crx/shared/sh_crx.lua")
-include("crx/shared/sh_category.lua")
-include("crx/shared/sh_command.lua")
-include("crx/shared/sh_database.lua")
-include("crx/shared/sh_net.lua")
+include("crx/shared/classes/sh_crx.lua")
+include("crx/shared/classes/sh_category.lua")
+include("crx/shared/classes/sh_command.lua")
+include("crx/shared/classes/sh_database.lua")
+include("crx/shared/classes/sh_net.lua")
+include("crx/shared/classes/sh_parameter.lua")
 
 if CLIENT then
-    include("crx/client/cl_gui.lua")
+    include("crx/client/classes/cl_gui.lua")
     include("crx/client/cl_tab_commands.lua")
     include("crx/client/cl_tab_groups.lua")
     include("crx/client/cl_tab_settings.lua")
