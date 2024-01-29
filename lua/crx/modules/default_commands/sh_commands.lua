@@ -3,7 +3,9 @@ local utilityCategory = CRX:Category("utility")
 
 -- Creates a new command object
 local kickCommand = CRX:Command("kick")
-local targetParameter = kickCommand:AddParameter(CRX_PARAMETER_PLAYER, "target")
+kickCommand:SetDescription("Kicks a player with the specified reason.")
+kickCommand:AddParameter(CRX_PARAMETER_PLAYER, "target")
+
 local reasonParameter = kickCommand:AddParameter(CRX_PARAMETER_STRING, "reason")
 reasonParameter:SetDefault("n/a")
 

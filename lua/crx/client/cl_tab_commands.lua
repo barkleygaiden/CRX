@@ -12,6 +12,13 @@ local function BuildCommandButton(parent, categorylist, command)
 
     function commandButton:Initialize()
         self.Command = command
+
+        local description = command:GetDescription()
+
+        if !description then return end
+
+        -- If the command has a description, create a tooltip for it.
+        self:SetTooltip(description)
     end
 
     function commandButton:DoClick()
@@ -76,22 +83,27 @@ local function BuildCommandList(parent)
     return categoryList
 end
 
+local function GetEntityText(ent, parameter)
+    local firstText = (parameter == CRX_PARAMETER_PLAYER and ent:Nick()) or ent:GetName()
+
+    if parameter == CRX_PARAMETER_PROP then
+        local model = string.GetFileFromFilename(ent:GetModel()) or nullModelString
+
+        firstText = string.format(propNameString, firstText, model)
+    end
+
+    local secondText = parameter == CRX_PARAMETER_PLAYER and ent:SteamID64()
+
+    return firstText, secondText
+end
+
 local emptyString = ""
-local propString = "prop_"
 local nullModelString = "NULL"
 local propNameString = "%s(%s)"
 local mouseLeftOrRight = bit.bor(MOUSE_LEFT, MOUSE_RIGHT)
 
 local function BuildEntityRow(entitylist, ent, parameter)
     if !IsValid(entitylist) then return end
-
-    local class = ent:GetClass()
-
-    -- If parameter is props only and our entity isn't a prop, then don't add it as a row.
-    if parameter == CRX_PARAMETER_PROP and string.sub(class, 1, 5) != propString then return end
-
-    -- We don't want internal map entites being included in our list.
-    if parameter == CRX_PARAMETER_ENTITY and ent:CreatedByMap() then return end
 
     local row = entitylist:AddLine(emptyString, emptyString)
     local oldInitialize = row.Initialize
@@ -102,7 +114,7 @@ local function BuildEntityRow(entitylist, ent, parameter)
         self.Entity = ent
         self.Parameter = parameter
 
-        local firstText, secondText = self:GetRowText()
+        local firstText, secondText = GetEntityText(ent, parameter)
 
         self:SetColumnText(1, firstText)
 
@@ -119,6 +131,7 @@ local function BuildEntityRow(entitylist, ent, parameter)
         local listView = self:GetParent():GetParent()
         local id = self:GetID()
 
+        -- Add or remove the row from our selected rows table.
         if bool then
             listView.SelectedRows[id] = true
         else
@@ -132,20 +145,6 @@ local function BuildEntityRow(entitylist, ent, parameter)
 
     function row:GetParameter()
         return self.Parameter
-    end
-
-    function row:GetRowText()
-        local firstText = (parameter == CRX_PARAMETER_PLAYER and ent:Nick()) or ent:GetName()
-
-        if parameter == CRX_PARAMETER_PROP then
-            local model = string.GetFileFromFilename(ent:GetModel()) or nullModelString
-
-            firstText = string.format(propNameString, firstText, model)
-        end
-
-        local secondText = parameter == CRX_PARAMETER_PLAYER and ent:SteamID64()
-
-        return firstText, secondText
     end
 
     -- Players don't need to have their position checked.
@@ -167,10 +166,7 @@ local function BuildEntityRow(entitylist, ent, parameter)
     end
 end
 
--- Columns
--- CRX_PARAMETER_ENTITY (name // distance)
--- CRX_PARAMETER_PLAYER (name // steamid)
-
+local propString = "prop_"
 local distFormatString = "%aft"
 local hookName = "CRX_GUI_Commands%i"
 local entAddHook = "OnEntityCreated"
@@ -218,15 +214,24 @@ local function BuildEntityList(parent)
 
         if !command then return end
 
-        local entityParameter = command.EntityParameter
-        local entTable = (entityParameter == CRX_PARAMETER_PLAYER and player.Iterator()) or ents.Iterator()
+        local targetParameter = command.TargetParameter
+        local parameterType = entityParameter:GetType()
+        local entTable = (parameterType == CRX_PARAMETER_PLAYER and player.Iterator()) or ents.Iterator()
 
-        for i, ent in entTable do
+        for _, ent in entTable do
             if !IsValid(ent) then continue end
 
             -- TODO: Check if entity is frozen.
 
-            local row = BuildEntityRow(self, ent, entityParameter)
+            local class = ent:GetClass()
+
+            -- If parameter is props only and our entity isn't a prop, then don't add it as a row.
+            if parameterType == CRX_PARAMETER_PROP and string.sub(class, 1, 5) != propString then continue end
+
+            -- We don't want internal map entites being included in our list.
+            if parameterType == CRX_PARAMETER_ENTITY and ent:CreatedByMap() then continue end
+
+            local row = BuildEntityRow(self, ent, parameterType)
 
             -- Add the row to our hashtable.
             self.EntityRows[ent] = row
@@ -292,10 +297,16 @@ local function BuildEntityList(parent)
 
     function entityList:Invalidate()
         local command = parent:GetSelectedCommand()
-        local entityParameter = command.EntityParameter
+        local targetParameter = command and command.TargetParameter
+        local entityType = targetParameter and targetParameter:GetType()
 
-        -- If a new command is selected and the entity parameter is the same, do nothing.
-        if command and (entityParameter or 0) == self.EntityType then return end
+        -- If our target parameter does not allow multiple targets, then disallow multiselect.
+        if targetParameter then
+            self:SetMultiSelect(targetParameter:CanTargetMultiple())
+        end
+
+        -- If a new command is selected and the target parameter is the same, do nothing.
+        if command and (entityType or 0) == self.EntityType then return end
 
         -- Clear all existing columns.
         self:ClearInternalPanels("Columns")
@@ -309,8 +320,8 @@ local function BuildEntityList(parent)
         -- Clear our row hashtable.
         self.EntityRows = {}
 
-        -- This command doesn't have an entity parameter, so disable the list.
-        if !command or !command.EntityParameter then
+        -- This command doesn't have a target parameter, so disable the list.
+        if !command or !targetParameter then
             self:AddColumn("N/A")
             self:SetEnabled(false)
 
@@ -323,7 +334,7 @@ local function BuildEntityList(parent)
             return
         end
         
-        local columnName = (entityParameter == CRX_PARAMETER_ENTITY and "Distance") or "SteamID"
+        local columnName = (entityType == CRX_PARAMETER_ENTITY and "Distance") or "SteamID"
 
         -- Adds the parameter columns.
         self:AddColumn("Name")
@@ -336,16 +347,206 @@ local function BuildEntityList(parent)
         self:AddHooks()
 
         -- Set the current entity parameter for later use.
-        self.EntityType = entityParameter
+        self.EntityType = entityType
     end
 
     return entityList
+end
+
+-- TODO: Command descriptions for tooltips.
+
+local descriptionHyphen - "%s - %s"
+
+local function BuildBoolBox(parent, parameter)
+    if !IsValid(parent) then return end
+
+    local canvasPanel = vgui.Create("DPanel", parent)
+    canvasPanel:Dock(TOP)
+    canvasPanel:DockMargin(5, 5, 5, 5)
+
+    -- Set checked status to default, false if optional, true otherwise.
+    local defaultStatus = parameter:GetDefault() or (parameter:IsOptional() and false) or true
+    local oldInitialize = canvasPanel.Initialize
+
+    function canvasPanel:Initialize()
+        self.Parameter = parameter
+
+        local name = parameter:GetName()
+        local description = parameter:GetDescription()
+        local labelText = (description and string.format(descriptionHyphen, name, description)) or name
+
+        self.NameLabel = vgui.Create("DLabel", self)
+        self.NameLabel:Dock(TOP)
+        self.NameLabel:SetText(labelText)
+
+        self.CheckBox = vgui.Create("DCheckBox", self)
+        self.CheckBox:Dock(FILL)
+        self.CheckBox:SetChecked(defaultStatus)
+    end
+
+    function canvasPanel:GetArg()
+        return self.CheckBox:GetChecked()
+    end
+
+    return canvasPanel
+end
+
+local function BuildNumberBox(parent, parameter)
+    if !IsValid(parent) then return end
+
+    local canvasPanel = vgui.Create("DPanel", parent)
+    canvasPanel:Dock(TOP)
+    canvasPanel:DockMargin(5, 5, 5, 5)
+
+    -- Gets default number if we have one.
+    local defaultNumber = parameter:GetDefault()
+    local oldInitialize = canvasPanel.Initialize
+
+    function canvasPanel:Initialize()
+        self.Parameter = parameter
+
+        local name = parameter:GetName()
+        local description = parameter:GetDescription()
+        local labelText = (description and string.format(descriptionHyphen, name, description)) or name
+
+        self.NameLabel = vgui.Create("DLabel", self)
+        self.NameLabel:Dock(TOP)
+        self.NameLabel:SetText(labelText)
+
+        self.NumberBox = vgui.Create("DNumberWang", self)
+        self.NumberBox:Dock(FILL)
+        self.NumberBox:SetMin(0)
+
+        if defaultNumber then
+            self.NumberBox:SetValue(defaultNumber)
+        end
+    end
+
+    function canvasPanel:GetArg()
+        return self.NumberBox:GetValue() or defaultNumber
+    end
+
+    return canvasPanel
+end
+
+local function BuildTextBox(parent, parameter)
+    if !IsValid(parent) then return end
+
+    local canvasPanel = vgui.Create("DPanel", parent)
+    canvasPanel:Dock(TOP)
+    canvasPanel:DockMargin(5, 5, 5, 5)
+
+    -- Gets default string if we have one.
+    local defaultString = parameter:GetDefault()
+    local oldInitialize = canvasPanel.Initialize
+
+    function canvasPanel:Initialize()
+        self.Parameter = parameter
+
+        local name = parameter:GetName()
+        local description = parameter:GetDescription()
+        local labelText = (description and string.format(descriptionHyphen, name, description)) or name
+
+        self.NameLabel = vgui.Create("DLabel", self)
+        self.NameLabel:Dock(TOP)
+        self.NameLabel:SetText(labelText)
+
+        self.TextBox = vgui.Create("DTextEntry", self)
+        self.TextBox:Dock(FILL)
+
+        if defaultString then
+            self.TextBox:SetValue(defaultString)
+        end
+    end
+
+    function canvasPanel:GetArg()
+        return self.TextBox:GetValue() or defaultString
+    end
+
+    return canvasPanel
+end
+
+local function BuildEntityBox(parent, parameter)
+    if !IsValid(parent) then return end
+
+    local canvasPanel = vgui.Create("DPanel", parent)
+    canvasPanel:Dock(TOP)
+    canvasPanel:DockMargin(5, 5, 5, 5)
+
+    local oldInitialize = canvasPanel.Initialize
+
+    function canvasPanel:Initialize()
+        self.Parameter = parameter
+
+        local name = parameter:GetName()
+        local description = parameter:GetDescription()
+        local labelText = (description and string.format(descriptionHyphen, name, description)) or name
+
+        self.NameLabel = vgui.Create("DLabel", self)
+        self.NameLabel:Dock(TOP)
+        self.NameLabel:SetText(labelText)
+
+        self.EntityBox = vgui.Create("DComboBox", self)
+        self.EntityBox:Dock(FILL)
+
+        function self.EntityBox:OnMenuOpened(menu)
+            local selectedEntity = self:GetSelected()
+
+            local parameterType = self.Parameter:GetType()
+            local entTable = (parameterType == CRX_PARAMETER_PLAYER and player.Iterator()) or ents.Iterator()
+
+            for _, ent in entTable do
+                if !IsValid(ent) then continue end
+
+                local class = ent:GetClass()
+
+                -- If parameter is props only and our entity isn't a prop, then don't add it as a row.
+                if parameterType == CRX_PARAMETER_PROP and string.sub(class, 1, 5) != propString then continue end
+
+                -- We don't want internal map entites being included in our list.
+                if parameterType == CRX_PARAMETER_ENTITY and ent:CreatedByMap() then continue end
+
+                local firstText, secondText = GetEntityText(ent, parameter)
+
+                -- secondText will be nil if our parameter type is not players.
+                if !secondText then
+                    local feetDistance = math.Round(ent:Distance() / 16, 2)
+
+                    secondText = string.format(distFormatString, feetDistance)
+                end
+
+                -- Format to get the final choice string.
+                local choiceText = string.format(descriptionHyphen, firstText, secondText)
+
+                -- If we have a selected entity and it is this entity, then select the choice after adding it.
+                local shouldSelect = IsValid(selectedEntity) and selectedEntity == ent
+
+                self:AddChoice(choiceText, ent, selectedEntity == ent)
+            end
+        end
+    end
+
+    function canvasPanel:GetArg()
+        local selectedEntity = select(2, self.EntityBox:GetSelected())
+
+        return selectedEntity
+    end
+
+    return canvasPanel
 end
 
 local noneString = "*no command*"
 local noTargetsString = "*no targets selected*"
 local missingString = "*missing '%s'"
 local actionString = "Do '%s'"
+local buildFunctions = {
+    [CRX_PARAMETER_BOOL] = BuildBoolBox,
+    [CRX_PARAMETER_NUMBER] = BuildNumberBox,
+    [CRX_PARAMETER_STRING] = BuildTextBox,
+    [CRX_PARAMETER_ENTITY] = BuildEntityBox,
+    [CRX_PARAMETER_PROP] = BuildEntityBox,
+    [CRX_PARAMETER_PLAYER] = BuildEntityBox
+}
 
 local function BuildParameterList(parent)
     if !IsValid(parent) then return end
@@ -365,6 +566,10 @@ local function BuildParameterList(parent)
         self.ParameterPanels = {}
         self.Parameters = {}
         self.Args = {}
+
+        -- This is used for the OnEntityCreated/EntityRemoved hooks.
+        -- TODO: Abstract hooks to main panel
+        self.TargetPanels = {}
     end
 
     function parameterList:GetButton()
@@ -389,9 +594,20 @@ local function BuildParameterList(parent)
 
             if !parameter:IsValid() then continue end
 
+            -- If this is the target parameter, skip it since it's handled in the entitylist panel.
+            if parameter:IsTarget() then continue end
+
             local parameterType = parameter:GetType()
+            local buildPanel = buildFunctions[parameterType]
+
+            -- Better safe than sorry :P
+            if !buildPanel then return end
 
             -- TODO: Finish this (DCheckBox, DNumberWang, DTextEntry)
+            local parameterPanel = buildPanel(self, parameter, i)
+
+            -- Insert the parameter panel in our table for future removal.
+            table.insert(self.ParameterPanels, parameterPanel) 
         end
     end
 
@@ -435,7 +651,16 @@ local function BuildParameterList(parent)
     doButton:SetText(noneString)
     parameterList:SetButton(doButton)
 
+    function doButton:DoClick()
+        -- assemble command string here
+
+        -- network/docommand here
+    end
+
     function doButton:InvalidateText()
+        -- Disable the button as early as possible if the below checks don't pass.
+        self:SetEnabled(false)
+
         local command = parent:GetSelectedCommand()
 
         -- If no command is selected, return end.
@@ -447,8 +672,8 @@ local function BuildParameterList(parent)
 
         local targetList = parent.EntityList.SelectedRows
 
-        -- If we have an entity parameter and no targets are selected, return end.
-        if command.EntityParameter and table.IsEmpty(targetList) then
+        -- If we have a target parameter and no targets are selected, return end.
+        if command.TargetParameter and table.IsEmpty(targetList) then
             self:SetText(noTargetsString)
 
             return
@@ -480,6 +705,7 @@ local function BuildParameterList(parent)
         local doText = string.format(actionString, command:GetName())
 
         self:SetText(doText)
+        self:SetEnabled(true)
     end
 
     return parameterList

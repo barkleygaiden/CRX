@@ -4,6 +4,7 @@ local ParameterClass = CRXParameterClass
 
 function ParameterClass:__constructor()
 	self.IsOptional = false
+	self.CanTargetMultiple = true
 end
 
 local classString = "[CRX] - Parameter [%s]: %s"
@@ -57,6 +58,15 @@ function ParameterClass:SetName(name)
 	self.Name = name
 end
 
+function ParameterClass:GetDescription()
+	return self.Description
+end
+
+function ParameterClass:SetDescription(description)
+	-- Set the new parameter description.
+	self.Description = description
+end
+
 function ParameterClass:GetType()
 	return self.Type
 end
@@ -103,9 +113,22 @@ function ParameterClass:IsOptional()
 	return self.IsOptional
 end
 
-function ParameterClass:SetIsOptional(optional)
+function ParameterClass:SetOptional(optional)
 	if optional == nil then return end
 
 	-- Set the new optional status.
 	self.IsOptional = IsOptional
+end
+
+function ParameterClass:IsTarget()
+	return self.IsTarget
+end
+
+function ParameterClass:CanTargetMultiple()
+	return self.CanTargetMultiple
+end
+
+function ParameterClass:SetTargetMultiple(multiple)
+	-- Set the new targeting status.
+	self.CanTargetMultiple = multiple
 end

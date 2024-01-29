@@ -5,7 +5,7 @@ local CommandClass = CRXCommandClass
 function CommandClass:__constructor()
 	self.Parameters = {}
 
-	self.EntityParameter = false
+	self.TargetParameter = false
 	self.DefaultPermissions = CRX_SUPERADMIN
 end
 
@@ -61,6 +61,15 @@ function CommandClass:SetName(name)
 	commands[self.Name] = self
 end
 
+function CommandClass:GetDescription()
+	return self.Description
+end
+
+function CommandClass:SetDescription(description)
+	-- Set the new command description.
+	self.Description = description
+end
+
 function CommandClass:GetCategory()
 	return self.Category
 end
@@ -85,20 +94,26 @@ function CommandClass:AddParameter(typ, name)
 	local parameter = CRXParameterClass()
 
 	-- Set the new parameter type.
-	self.Type = typ
+	parameter.Type = typ
 
 	-- Set the new parameter name.
-	self.Name = name
+	parameter.Name = name
 
 	-- Set the new parameter's parent (command).
-	self.Parent = self
+	parameter.Parent = self
 
 	-- Hacky method of avoiding table.HasValue where we store the type to avoid a break loop.
-	if !self.EntityParameter and typ >= 4 then
-		self.EntityParameter = typ
+	if !self.TargetParameter and typ >= 4 then
+		self.TargetParameter = parameter
+
+		parameter.IsTarget = true
 	end
 
 	table.insert(self.Parameters, parameter)
+end
+
+function CommandClass:GetCallback(func)
+	return self.Callback
 end
 
 function CommandClass:GetDefaultPermissions()
@@ -138,8 +153,4 @@ function CommandClass:HasPermissions(object)
 
 	-- True if our group is equal or higher than the permissions enum.
 	return permissions >= self.DefaultPermissions
-end
-
-function CommandClass:GetCallback(func)
-	return self.Callback
 end

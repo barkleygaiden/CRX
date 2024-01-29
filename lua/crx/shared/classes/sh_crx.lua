@@ -158,7 +158,7 @@ end
 function CRXClass:DoCommand(ply, cmd, args, argstring)
 	-- No command provided, print help command
 	if !args then
-		MsgC(color_white, "[", CRXColor, "CRX", color_white, "] - ", GetStateColor(), "Help: crx help")
+		MsgC(color_white, "[", CRXColor, "CRX", color_white, "] - ", GetStateColor(), "No command entered. If you need help, please type 'crx help' in your console.")
 
 		return
 	end
