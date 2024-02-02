@@ -105,11 +105,20 @@ function CommandClass:AddParameter(typ, name)
 	-- Hacky method of avoiding table.HasValue where we store the type to avoid a break loop.
 	if !self.TargetParameter and typ >= 4 then
 		self.TargetParameter = parameter
+		self.TargetIndex = #self.Parameters + 1
 
 		parameter.IsTarget = true
 	end
 
 	table.insert(self.Parameters, parameter)
+end
+
+function CommandClass:ProcessArgStrings(strings)
+	local processedArgs = {}
+
+    -- TODO
+
+    return processedArgs
 end
 
 function CommandClass:GetCallback(func)

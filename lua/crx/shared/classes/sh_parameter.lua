@@ -58,6 +58,10 @@ function ParameterClass:SetName(name)
 	self.Name = name
 end
 
+function ParameterClass:GetParent()
+	return self.Parent
+end
+
 function ParameterClass:GetDescription()
 	return self.Description
 end
@@ -131,4 +135,51 @@ end
 function ParameterClass:SetTargetMultiple(multiple)
 	-- Set the new targeting status.
 	self.CanTargetMultiple = multiple
+end
+
+local trueString = "1"
+local falseString = "0"
+
+local function BoolArgToString(arg)
+	if arg == nil then return end
+
+	return (arg and trueString) or falseString
+end
+
+local quoteChar = string.char(34)
+
+local function StringArgToString(arg)
+	if arg == nil then return end
+
+	if string.Left(arg, 1) != quoteChar and string.Right(arg, 1) != quoteChar then return end
+
+	return string.sub(arg, 1, -1)
+end
+
+local argToStringParsers = {
+	[CRX_PARAMETER_BOOL] = BoolArgToString,
+	[CRX_PARAMETER_NUMBER] = tonumber,
+	[CRX_PARAMETER_STRING] = StringArgToString,
+	[CRX_PARAMETER_ENTITY] = EntityArgToString,
+	[CRX_PARAMETER_PROP] = EntityArgToString,
+	[CRX_PARAMETER_PLAYER] = PlayerArgToString
+}
+
+function ParameterClass:ArgToString(arg)
+	if !arg then return end
+end
+
+-- local hasSpaces = string.match(str, "%s") != nil
+
+local stringToArgParsers = {
+	[CRX_PARAMETER_BOOL] = "BOOL",
+	[CRX_PARAMETER_NUMBER] = "NUMBER",
+	[CRX_PARAMETER_STRING] = "STRING",
+	[CRX_PARAMETER_ENTITY] = "ENTITY",
+	[CRX_PARAMETER_PROP] = "PROP",
+	[CRX_PARAMETER_PLAYER] = "PLAYER"
+}
+
+function ParameterClass:StringToArg(arg)
+	if !string.IsValid(arg) then return end
 end

@@ -96,6 +96,9 @@ local function BuildFrame(self2)
     frame:SetMinWidth(600)
     frame:SetMinHeight(420)
 
+    -- Creates a Get/Set sheet function.
+    AccessorFunc(frame, "Sheet", "Sheet")
+
     local oPerformLayout = frame.PerformLayout   
 
     function frame:PerformLayout(w, h)
@@ -107,22 +110,6 @@ local function BuildFrame(self2)
 
         -- Keep the infobar at the bottom of the frame.
         self.InfoBar:SetX(w * 0.5 - (w - (w * 0.05)) * 0.5, h - 1)
-
-        -- DPropertySheet scales the active DTab's panel internally.
-        -- However, we still need to call our custom PerformLayout method.
-        local sheet = self:GetSheet()
-        local tab = sheet:GetActiveTab()
-
-        -- This should never happen but it's best to check anyways.
-        if !IsValid(tab) then return end
-
-        local tabInfo = self.Tabs[tab.TabIndex]
-
-        -- Modules aren't always using PerformLayout to scale their panels.
-        if !isfunction(tabInfo.PerformLayoutCallback) then return end
-
-        -- Call the tab's custom PerformLayout callback.
-        tabInfo.PerformLayoutCallback(tab:GetPanel())
     end
 
     local oldOnMouseReleased = frame.OnMouseReleased
@@ -142,10 +129,6 @@ local function BuildFrame(self2)
 
         -- Set frame width/height to the new size.
         self2.FrameWidth, self2.FrameHeight = newW, newH
-    end
-
-    function frame:GetSheet()
-        return self.Sheet
     end
 
     return frame
@@ -235,7 +218,7 @@ end
 
 local defaultIcon = "icon16/link.png"
 
-function GUIClass:AddTab(name, icon, callback, performlayout)
+function GUIClass:AddTab(name, icon, callback)
     if !string.IsValid(name) then return end
 
     -- You need to provide a callback to build your panels in.
@@ -245,7 +228,6 @@ function GUIClass:AddTab(name, icon, callback, performlayout)
     tab.Name = name
     tab.Icon = icon or defaultIcon
     tab.BuildCallback = callback
-    tab.PerformLayout = performlayout
 
     table.insert(self.Tabs, tab)
 end
