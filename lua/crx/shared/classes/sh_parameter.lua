@@ -13,8 +13,6 @@ local enumConversions = {
 	[CRX_PARAMETER_BOOL] = "BOOL",
 	[CRX_PARAMETER_NUMBER] = "NUMBER",
 	[CRX_PARAMETER_STRING] = "STRING",
-	[CRX_PARAMETER_ENTITY] = "ENTITY",
-	[CRX_PARAMETER_PROP] = "PROP",
 	[CRX_PARAMETER_PLAYER] = "PLAYER"
 }
 
@@ -160,23 +158,23 @@ end
 local argString = "(%i)"
 local insertionString = ",%i"
 
-local function EntityArgToString(arg)
+local function PlayerArgToString(arg)
 	if !arg then return end
 
 	local argString = ""
 	local pairsFunc = (arg[1] and ipairs) or pairs
 
-	for _, ent in pairsFunc(arg) do
-		if !IsValid(ent) then return end
+	for _, ply in pairsFunc(arg) do
+		if !IsValid(ply) then return end
 
-		-- UserID takes up less space than the index of an entity and is more reliable.
-		local entID = (ent:IsPlayer() and ent:UserID()) or ent:EntIndex()
+		-- UserID takes up less space than :EntIndex() and is more reliable.
+		local userID = ply:UserID()
 
 		-- Next returns the next key in memory, nil if we are on the last key.
 		local isLastEnt = next(arg) == nil
 
-		-- Insert the entity ID into the string, and insert a comma along with a integer format % if this is not the last entity.
-		string.format(argString, entID, !isLastEnt and insertionString)
+		-- Insert the player ID into the string, and insert a comma along with a integer format % if this is not the last player.
+		string.format(argString, userID, !isLastEnt and insertionString)
 	end
 
 	return argString
@@ -186,9 +184,7 @@ local argToStringParsers = {
 	[CRX_PARAMETER_BOOL] = BoolArgToString,
 	[CRX_PARAMETER_NUMBER] = tostring,
 	[CRX_PARAMETER_STRING] = StringArgToString,
-	[CRX_PARAMETER_ENTITY] = EntityArgToString,
-	[CRX_PARAMETER_PROP] = EntityArgToString,
-	[CRX_PARAMETER_PLAYER] = EntityArgToString
+	[CRX_PARAMETER_PLAYER] = PlayerArgToString
 }
 
 function ParameterClass:ArgToString(arg)
@@ -213,31 +209,45 @@ local function BoolStringToArg(str)
 	return isTrue or isFalse
 end
 
-local leftParenthesis = "("
-local rightParenthesis = ")"
+-- TODO: Add IP address support?
+-- local isIPAddress = string.match(str, "%d") != nil
 
-local function ProcessEntityTable(str)
-	if string.sub(str, 1, 1) != leftParenthesis or string.sub(str, -1) != rightParenthesis then return end
+local function GetPlayerFromID(str)
+	local isSteamID = string.sub(str, 1, 6) == "STEAM_"
+	local isSteamID64 = #str == 17
 
-	local entities = {}
-	local splitIDs = string.Split(string.sub(str, 1, -1), ",")
+	if isSteamID or isSteamID64 then
+		str = (isSteamID64 and str) or util.SteamIDTo64(str)
 
-	for i = 1, #splitIDs do
-		local entID = tonumber(splitIDs[i])
-		local ent = (self.Type == CRX_PARAMETER_PLAYER and Player(entID)) or Entity(entID)
+		return chicagoRP.GetPlayerBySteamID64(str)
+	else
+		local userID = tonumber(str)
 
-		if !IsValid(ent) then return end
+		return Player(entID)
+	end
+end
 
-		table.insert(entities, ent)
+local function ProcessPlayerTable(str)
+	local players = {}
+	local splitTerms = string.Split(string.sub(str, 1, -1), ",")
+
+	for i = 1, #splitTerms do
+		local userID = tonumber(splitIDs[i])
+		local ply = GetPlayerFromID(str)
+
+		if !IsValid(ply) then return end
+
+		table.insert(players, ply)
 	end
 
-	return entities
+	return players
 end
 
-local function ProcessEntityTargeter(str)
+-- TODO: Do this.
+local function ProcessPlayerTargeter(str)
 end
 
-local function ProcessEntityName(str)
+local function ProcessPlayerName(str)
 	local players = {}
 	local hasSpaces = string.match(str, "%s") != nil
 
@@ -256,28 +266,34 @@ local function ProcessEntityName(str)
 	return players
 end
 
-local function EntityStringToArg(str)
+local leftParenthesis = "("
+local rightParenthesis = ")"
+
+local function PlayerStringToArg(str)
 	if !str then return end
 
 	local firstChar = string.sub(str, 1, 1)
 
+	-- If our string uses parenthesis syntax, remove the parenthesis from the string.
+	if firstChar == leftParenthesis then
+		str = string.sub(str, 2, -2)
+	end
+
 	-- If the string uses parenthesis syntax, it must be a table.
-	if firstChar == leftParenthesis then return ProcessEntityTable(str) end
+	if firstChar == leftParenthesis then return ProcessPlayerTable(str) end
 
 	-- If the string uses any special characters, it must be using targeting syntax.
-	if string.match(firstChar, "[@^*$#%!]") then return ProcessEntityTargeter(str) end
+	if string.match(firstChar, "[@^*$#%!]") then return ProcessPlayerTargeter(str) end
 
 	-- Otherwise, the string is just a player name or a search operator.
-	return ProcessEntityName(str)
+	return ProcessPlayerName(str)
 end
 
 local stringToArgParsers = {
 	[CRX_PARAMETER_BOOL] = BoolStringToArg,
 	[CRX_PARAMETER_NUMBER] = tonumber,
 	[CRX_PARAMETER_STRING] = function(str) return str end,
-	[CRX_PARAMETER_ENTITY] = EntityStringToArg,
-	[CRX_PARAMETER_PROP] = EntityStringToArg,
-	[CRX_PARAMETER_PLAYER] = EntityStringToArg
+	[CRX_PARAMETER_PLAYER] = PlayerStringToArg
 }
 
 function ParameterClass:StringToArg(arg)

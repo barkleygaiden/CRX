@@ -83,23 +83,14 @@ local function BuildCommandList(parent)
     return categoryList
 end
 
-local function GetEntityText(ent, parameter)
-    local firstText = (parameter == CRX_PARAMETER_PLAYER and ent:Nick()) or ent:GetName()
-
-    if parameter == CRX_PARAMETER_PROP then
-        local model = string.GetFileFromFilename(ent:GetModel()) or nullModelString
-
-        firstText = string.format(propNameString, firstText, model)
-    end
-
+local function GetPlayerText(ent, parameter)
+    local firstText = ent:Nick()
     local secondText = parameter == CRX_PARAMETER_PLAYER and ent:SteamID64()
 
     return firstText, secondText
 end
 
 local emptyString = ""
-local nullModelString = "NULL"
-local propNameString = "%s(%s)"
 local mouseLeftOrRight = bit.bor(MOUSE_LEFT, MOUSE_RIGHT)
 
 local function BuildEntityRow(entitylist, ent, parameter)
@@ -119,13 +110,10 @@ local function BuildEntityRow(entitylist, ent, parameter)
         self.Entity = ent
         self.Parameter = parameter
 
-        -- This gets the name of an entity, and their SteamID64 if the entity is a player.
-        local firstText, secondText = GetEntityText(ent, parameter)
+        -- This gets the name of the player and their SteamID64.
+        local firstText, secondText = GetPlayerText(ent, parameter)
 
         self:SetColumnText(1, firstText)
-
-        if parameter != CRX_PARAMETER_PLAYER then return end
-
         self:SetColumnText(2, secondText)
     end
 
@@ -157,24 +145,6 @@ local function BuildEntityRow(entitylist, ent, parameter)
 
         -- Insert the target table into our args table using the parameter's parent's index.
         currentArgs[argIndex] = listView:GetTargetList()
-    end
-
-    -- Players don't need to have their position checked.
-    if parameter == CRX_PARAMETER_PLAYER then return end
-
-    function row:Think()
-        local curTime = CurTime()
-
-        if (self.LastThink or 0) + 1 >= curTime then return end
-        if !IsValid(self.Entity) then return end
-
-        local feetDistance = math.Round(self.Entity:Distance() / 16, 2)
-        local distanceString = string.format(distFormatString, feetDistance)
-
-        -- Updates distance. 
-        self:SetColumnText(2, distanceString)
-
-        self.LastThink = curTime
     end
 end
 
@@ -233,23 +203,14 @@ local function BuildEntityList(parent)
 
         local targetParameter = command.TargetParameter
         local parameterType = entityParameter:GetType()
-        local entTable = (parameterType == CRX_PARAMETER_PLAYER and player.Iterator()) or ents.Iterator()
 
-        for _, ent in entTable do
-            if !IsValid(ent) then continue end
+        for _, ply in player.Iterator() do
+            if !IsValid(ply) then continue end
 
-            local class = ent:GetClass()
-
-            -- If parameter is props only and our entity isn't a prop, then don't add it as a row.
-            if parameterType == CRX_PARAMETER_PROP and string.sub(class, 1, 5) != propString then continue end
-
-            -- We don't want internal map entites being included in our list.
-            if parameterType == CRX_PARAMETER_ENTITY and ent:CreatedByMap() then continue end
-
-            local row = BuildEntityRow(self, ent, parameterType)
+            local row = BuildEntityRow(self, ply, parameterType)
 
             -- Add the row to our hashtable.
-            self.EntityRows[ent] = row
+            self.EntityRows[ply] = row
         end
     end
 
@@ -334,7 +295,7 @@ local function BuildEntityList(parent)
             self:SetMultiSelect(targetParameter:CanTargetMultiple())
         end
 
-        -- If a new command is selected and the target parameter is the same, do nothing.
+        -- If a new command is selected and a valid target parameter is present, do nothing.
         if command and (entityType or 0) == self.EntityType then return end
 
         -- Clear all existing columns.
@@ -365,12 +326,10 @@ local function BuildEntityList(parent)
 
             return
         end
-        
-        local columnName = (entityType == CRX_PARAMETER_ENTITY and "Distance") or "SteamID"
 
         -- Adds the parameter columns.
         self:AddColumn("Name")
-        self:AddColumn(columnName)
+        self:AddColumn("SteamID")
 
         -- Build our list's rows.
         self:BuildRows()
@@ -540,38 +499,22 @@ local function BuildEntityBox(parent, parameter, index)
     entityBox:Dock(FILL)
 
     function entityBox:OnMenuOpened(menu)
-        local selectedEntity = self:GetSelected()
+        local selectedPlayer = self:GetSelected()
         local parameterType = canvasPanel.Parameter:GetType()
-        local entTable = (parameterType == CRX_PARAMETER_PLAYER and player.Iterator()) or ents.Iterator()
 
-        for _, ent in entTable do
-            if !IsValid(ent) then continue end
+        for _, ply in player.Iterator() do
+            if !IsValid(ply) then continue end
 
-            local class = ent:GetClass()
-
-            -- If parameter is props only and our entity isn't a prop, then don't add it as a row.
-            if parameterType == CRX_PARAMETER_PROP and string.sub(class, 1, 5) != propString then continue end
-
-            -- We don't want internal map entites being included in our list.
-            if parameterType == CRX_PARAMETER_ENTITY and ent:CreatedByMap() then continue end
-
-            -- This gets the name of an entity, and their SteamID64 if the entity is a player.
-            local firstText, secondText = GetEntityText(ent, parameter)
-
-            -- secondText will be nil if our parameter type is not players.
-            if !secondText then
-                local feetDistance = math.Round(ent:Distance() / 16, 2)
-
-                secondText = string.format(distFormatString, feetDistance)
-            end
+            -- This gets the name of an player and their SteamID64.
+            local firstText, secondText = GetEntityText(ply, parameter)
 
             -- Format to get the final choice string.
             local choiceText = string.format(descriptionHyphen, firstText, secondText)
 
-            -- If we have a selected entity and it is this entity, then select the choice after adding it.
-            local shouldSelect = IsValid(selectedEntity) and selectedEntity == ent
+            -- If we have a selected player and it is this player, then select the choice after adding it.
+            local shouldSelect = IsValid(selectedPlayer) and selectedPlayer == ply
 
-            self:AddChoice(choiceText, ent, selectedEntity == ent)
+            self:AddChoice(choiceText, ply, selectedPlayer == ply)
 
             local parent = canvasPanel:GetParent()
             local doButton = parent:GetButton()
@@ -603,8 +546,6 @@ local buildFunctions = {
     [CRX_PARAMETER_BOOL] = BuildBoolBox,
     [CRX_PARAMETER_NUMBER] = BuildNumberBox,
     [CRX_PARAMETER_STRING] = BuildTextBox,
-    [CRX_PARAMETER_ENTITY] = BuildEntityBox,
-    [CRX_PARAMETER_PROP] = BuildEntityBox,
     [CRX_PARAMETER_PLAYER] = BuildEntityBox
 }
 

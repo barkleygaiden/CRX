@@ -103,7 +103,7 @@ function CommandClass:AddParameter(typ, name)
 	parameter.Parent = self
 
 	-- Hacky method of avoiding table.HasValue where we store the type to avoid a break loop.
-	if !self.TargetParameter and typ >= 4 then
+	if !self.TargetParameter and typ == 4 then
 		self.TargetParameter = parameter
 		self.TargetIndex = #self.Parameters + 1
 
