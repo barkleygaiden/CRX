@@ -11,16 +11,10 @@ reasonParameter:SetDefault("n/a")
 
 local reasonString = "You were kicked by %s.\nReason: %s"
 local successString = "You kicked %s for Reason: %s"
-local invalidTargetString = "Kick failed, target invalid."
 
-function kickCommand:Callback(ply, ...)
-	local args = {...}
-	local target = args[1]
-
-	if !IsValid(target) then return false, invalidTargetString end
-
+function kickCommand:Callback(ply, target, reason)
 	-- Format our reason string, default reason is done internally if needed.
-	local reason = string.format(reasonString, ply:Nick(), args[2])
+	local reason = string.format(reasonString, ply:Nick(), reason)
 
 	target:Kick(reason)
 

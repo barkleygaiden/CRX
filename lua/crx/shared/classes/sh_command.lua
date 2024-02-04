@@ -163,3 +163,32 @@ function CommandClass:HasPermissions(object)
 	-- True if our group is equal or higher than the permissions enum.
 	return permissions >= self.DefaultPermissions
 end
+
+function CommandClass:DoCommand(ply, cmd, args, argstring)
+	-- We process the args by converting from strings to their expected types and values.
+	local processedArgs, targets = self:ProcessArgStrings(args)
+	local unpackedArgs = unpack(processedArgs)
+	local targetParameter = self.TargetParameter
+
+	-- If we have targets, then we need to do a loop to invoke the command once for each target.
+	if targets then
+		for i = 1, #targets do
+			local target = targets[i]
+
+			if !IsValid(target) then continue end
+
+			-- We invoke the command's callback for this target and leave it to them.
+			local notifyMessage = self.Callback(ply, target, unpackedArgs)
+
+			-- TODO: MsgC + chat.AddText on client.
+		end
+
+		-- Return end to stop the callback from being called again.
+		return
+	end
+
+	-- Finally, we invoke the command's callback and leave it to them.
+	local notifyMessage = self.Callback(ply, unpackedArgs)
+
+	-- TODO: MsgC + chat.AddText on client.
+end

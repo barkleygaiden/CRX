@@ -17,7 +17,7 @@ function CRXClass:__constructor()
 	end
 
     -- Adds the primary command.
-    concommand.Add("crx", self:DoCommand)
+    concommand.Add("crx", self:ProcessCommand)
 
     -- Runs our initialization hook.
     hook.Run("CRX_Initialized")
@@ -173,7 +173,7 @@ function CRXClass:DoInternalCommand(ply, cmd, args, argstring)
 	return false
 end
 
-function CRXClass:DoCommand(ply, cmd, args, argstring)
+function CRXClass:ProcessCommand(ply, cmd, args, argstring)
 	-- Process our internal commands if needed (menu, help, etc)
 	local processed = self:DoInternalCommand(ply, cmd, args, argstring)
 
@@ -183,33 +183,13 @@ function CRXClass:DoCommand(ply, cmd, args, argstring)
 	-- Fetch the command object from our internal table.
 	local command = self.Commands[args[1]]
 
+	-- Fuck off skid.
+	if !command:HasPermissions(ply) then return end
+
 	-- After fetching the command, the first argument (the command name) is irrelevant.
 	-- Therefore, we remove it before processing the args.
 	table.remove(args, 1)
 
-	-- Then, we process the args by converting from strings to their expected types and values.
-	local processedArgs, targets = command:ProcessArgStrings(args)
-	local unpackedArgs = unpack(processedArgs)
-	local targetParameter = command.TargetParameter
-
-	-- If we have targets, then we need to do a loop to invoke the command once for each target.
-	if targets then
-		for i = 1, #targets do
-			local target = targets[i]
-
-			if !IsValid(target) then continue end
-
-			-- Finally, we invoke the command's callback for this target and leave it to them.
-			local notifyMessage = command:Callback(ply, target, unpackedArgs)
-
-			-- TODO: MsgC + chat.AddText on client.
-		end
-
-		return
-	end
-
-	-- Finally, we invoke the command's callback and leave it to them.
-	local notifyMessage = command:Callback(ply, unpackedArgs)
-
-	-- TODO: MsgC + chat.AddText on client.
+	-- Process the command inside of it's object.
+	command:DoCommand(ply, cmd, args, argstring)
 end
