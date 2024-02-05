@@ -229,7 +229,7 @@ end
 
 local function ProcessPlayerTable(str)
 	local players = {}
-	local splitTerms = string.Split(string.sub(str, 1, -1), ",")
+	local splitTerms = string.Split(string.sub(str, 1, -1), ", ")
 
 	for i = 1, #splitTerms do
 		local userID = tonumber(splitIDs[i])
@@ -243,8 +243,39 @@ local function ProcessPlayerTable(str)
 	return players
 end
 
+local function GetPlayerFromTrace(caller)
+	local eyePos = caller:EyePos()
+	local tr = util.TraceLine({
+		start = eyePos,
+		endpos = eyePos + caller:EyeAngles():Forward() * 10000
+	})
+
+	return IsValid(tr.Entity) and tr.Entity:IsPlayer() and tr.Entity
+end
 -- TODO: Do this.
+-- ^ - yourself
+-- * - everyone
+-- @ - player in front of you
+-- #<group> - target by group
+-- %<group> - target by group (inheritance counts)
 local function ProcessPlayerTargeter(str)
+	local firstChar, secondChar = string.sub(str, 1, 1), string.sub(str, 2, 2)
+	local players = {}
+	local oppositePlayers = {}
+	local tracePly = GetPlayerFromTrace(caller)
+
+	for i, ply in player.Iterator() do
+		if str == "@" then 
+
+		if passedArg then
+			table.insert(players, ply)
+		else
+			table.insert(oppositePlayers, ply)
+		end
+	end
+
+	-- No negation keyword, so return the primary player table. 
+	if firstChar != "!" then return end
 end
 
 local function ProcessPlayerName(str)
