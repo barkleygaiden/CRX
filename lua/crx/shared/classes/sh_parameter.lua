@@ -23,14 +23,14 @@ function ParameterClass:__tostring()
 end
 
 function ParameterClass:__eq(other)
-	-- If either command doesn't have a type or name, they are not equal.
+	-- If either command lacks a type or name, they are not equal.
 	if !self:IsValid() or !other:IsValid() then return false end
 
-	return self:GetName() == other:GetName()
+	return self.Name == other:GetName() and self.Type == other:GetType()
 end
 
 function ParameterClass:IsValid()
-	local validType = isnumber(self.Type) and self.Type >= 1 and self.Type <= 6
+	local validType = isnumber(self.Type) and self.Type >= 1 and self.Type <= 4
 
 	return validType and string.IsValid(self.Name)
 end
@@ -155,7 +155,7 @@ local function StringArgToString(arg)
 	return string.concat(quoteChar, arg, quoteChar)
 end
 
-local argString = "(%i)"
+local argFormatString = "(%i)"
 local insertionString = ",%i"
 
 local function PlayerArgToString(arg)
@@ -174,7 +174,7 @@ local function PlayerArgToString(arg)
 		local isLastEnt = next(arg) == nil
 
 		-- Insert the player ID into the string, and insert a comma along with a integer format % if this is not the last player.
-		string.format(argString, userID, !isLastEnt and insertionString)
+		argString = string.format(argFormatString, userID, !isLastEnt and insertionString)
 	end
 
 	return argString
@@ -203,8 +203,8 @@ local falseNumberString = "0"
 local function BoolStringToArg(str)
 	if !str then return end
 
-	local isTrue = (trueBoolString or trueNumberString) and true
-	local isFalse = (falseBoolString or falseNumberString) and false
+	local isTrue = (str == trueBoolString or str == trueNumberString) and true
+	local isFalse = (str == falseBoolString or str == falseNumberString) and false
 
 	return isTrue or isFalse
 end
@@ -223,17 +223,17 @@ local function GetPlayerFromID(str)
 	else
 		local userID = tonumber(str)
 
-		return Player(entID)
+		return Player(userID)
 	end
 end
 
 local function ProcessPlayerTable(str)
 	local players = {}
-	local splitTerms = string.Split(string.sub(str, 1, -1), ", ")
+	local splitTerms = string.Split(string.sub(str, 1, -1), ",")
 
 	for i = 1, #splitTerms do
-		local userID = tonumber(splitIDs[i])
-		local ply = GetPlayerFromID(str)
+		local userID = splitTerms[i]
+		local ply = GetPlayerFromID(userID)
 
 		if !IsValid(ply) then return end
 
@@ -245,6 +245,7 @@ end
 
 local function GetPlayerFromTrace(caller)
 	local eyePos = caller:EyePos()
+
 	local tr = util.TraceLine({
 		start = eyePos,
 		endpos = eyePos + caller:EyeAngles():Forward() * 10000
@@ -252,20 +253,25 @@ local function GetPlayerFromTrace(caller)
 
 	return IsValid(tr.Entity) and tr.Entity:IsPlayer() and tr.Entity
 end
+
 -- TODO: Do this.
 -- ^ - yourself
 -- * - everyone
 -- @ - player in front of you
 -- #<group> - target by group
 -- %<group> - target by group (inheritance counts)
-local function ProcessPlayerTargeter(str)
+local function ProcessPlayerTargeter(str, caller)
 	local firstChar, secondChar = string.sub(str, 1, 1), string.sub(str, 2, 2)
 	local players = {}
 	local oppositePlayers = {}
-	local tracePly = GetPlayerFromTrace(caller)
+	local tracePly = (str == "@" and GetPlayerFromTrace(caller)) or nil
 
-	for i, ply in player.Iterator() do
-		if str == "@" then 
+	for i, ply in player.Iterator() d
+		local passedArg = false
+
+		if tracePly and tracePly == ply then
+			passedArg = true
+		end
 
 		if passedArg then
 			table.insert(players, ply)
@@ -298,7 +304,6 @@ local function ProcessPlayerName(str)
 end
 
 local leftParenthesis = "("
-local rightParenthesis = ")"
 
 local function PlayerStringToArg(str)
 	if !str then return end
@@ -327,10 +332,48 @@ local stringToArgParsers = {
 	[CRX_PARAMETER_PLAYER] = PlayerStringToArg
 }
 
-function ParameterClass:StringToArg(arg)
+function ParameterClass:StringToArg(arg, caller)
 	if !string.IsValid(arg) then return end
 
 	local stringParser = stringToArgParsers[self.Type]
 
-	return stringParser(arg)
+	return stringParser(arg, caller)
+end
+
+local boolError = "'boolean' expected for argument index '%i'."
+local numberError = "'number' expected for argument index '%i'."
+local targetKeywordError = "valid 'target' keyword expected for argument index '%i'."
+
+function ParameterClass:IsStringArgValid(argstr)
+	local isValid = true
+
+	if !string.IsValid(argstr) then
+		isValid = false
+	elseif parameterType == CRX_PARAMETER_BOOL and !(
+		argString == trueBoolString or
+		argString == trueNumberString or
+		argString == falseBoolString or
+		argString == falseNumberString) then
+
+		isValid = false
+		errorMessage = string.format(boolError, i)
+	elseif parameterType == CRX_PARAMETER_NUMBER and string.match(argString, "[^%d%.]") then
+		isValid = false
+		errorMessage = string.format(numberError, i)
+	elseif parameterType == CRX_PARAMETER_PLAYER then
+		local firstChar, secondChar = string.sub(str, 1, 1), string.sub(str, 2, -2)
+		local selectedNobody = secondChar and (firstChar == "!" and secondChar == "*")
+
+		if (firstChar == "!" and !secondChar) or selectedNobody then
+			isValid = false
+			errorMessage = string.format(targetKeywordError, i)
+		end
+	end
+
+	-- If the provided arg string is invalid and there's no fallback, return false.
+	if !isValid and !(parameter:GetDefault() or parameter:IsOptional()) then
+		return false, errorMessage
+	end
+
+	return true
 end

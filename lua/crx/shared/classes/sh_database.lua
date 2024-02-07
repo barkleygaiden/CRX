@@ -81,7 +81,6 @@ function DatabaseClass:SetUserGroup(steamid, group)
 	sql.Commit()
 end
 
-local emptyString = ""
 local removeUserGroupQuery = "DELETE FROM 'CRX_Groups' WHERE 'Name'='%s'"
 local changeUserGroupQuery = "INSERT OR REPLACE INTO 'CRX_Groups'('Name', 'Inherits') VALUES('%s', '%s')"
 
@@ -90,7 +89,7 @@ function DatabaseClass:ChangeUserGroupName(group, name)
 	if !string.IsValid(group) then return end
 
 	-- Assemble query BEFORE the usergroup's name is changed.
-	local deleteQuery = string.format(removeUserGroupQuery, userGroup.Name)
+	local deleteQuery = string.format(removeUserGroupQuery, group)
 
 	-- Make changes to CAMI_USERGROUP object.
 	local userGroup = CAMI.GetUsergroup(group)
@@ -102,7 +101,6 @@ function DatabaseClass:ChangeUserGroupName(group, name)
 	nett:NetworkUserGroup(userGroup)
 
 	-- TODO: How does string.format handle nil?
-	local deleteQuery = string.format(removeUserGroupQuery, userGroup.Name)
 	local changeQuery = string.format(changeUserGroupQuery, userGroup.Name, userGroup.Inherits)
 
 	sql.Begin()

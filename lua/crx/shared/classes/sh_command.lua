@@ -17,10 +17,10 @@ function CommandClass:__tostring()
 end
 
 function CommandClass:__eq(other)
-	-- If either command doesn't have a name, they are not equal.
+	-- If either command lacks a name, they are not equal.
 	if !self:IsValid() or !other:IsValid() then return false end
 
-	return self:GetName() == other:GetName()
+	return self.Name == other:GetName()
 end
 
 function CommandClass:IsValid()
@@ -61,15 +61,6 @@ function CommandClass:SetName(name)
 	commands[self.Name] = self
 end
 
-function CommandClass:GetDescription()
-	return self.Description
-end
-
-function CommandClass:SetDescription(description)
-	-- Set the new command description.
-	self.Description = description
-end
-
 function CommandClass:GetCategory()
 	return self.Category
 end
@@ -82,6 +73,15 @@ function CommandClass:SetCategory(category)
 	if !IsValid(category) then return end
 
 	category:AddCommand(self)
+end
+
+function CommandClass:GetDescription()
+	return self.Description
+end
+
+function CommandClass:SetDescription(description)
+	-- Set the new command description.
+	self.Description = description
 end
 
 function CommandClass:GetParameters()
@@ -111,14 +111,6 @@ function CommandClass:AddParameter(typ, name)
 	end
 
 	table.insert(self.Parameters, parameter)
-end
-
-function CommandClass:ProcessArgStrings(strings)
-	local processedArgs = {}
-
-    -- TODO
-
-    return processedArgs
 end
 
 function CommandClass:GetCallback(func)
@@ -157,21 +149,47 @@ function CommandClass:HasPermissions(object)
 	local userGroupName = (isString and object) or object:GetUserGroup()
 
 	-- Get our usergroup's root inheritance.
-	local inheritance = CAMI.InheritanceRoot(object)
+	local inheritance = CAMI.InheritanceRoot(userGroupName)
 	local permissions = groupPermissions[inheritance]
 
 	-- True if our group is equal or higher than the permissions enum.
 	return permissions >= self.DefaultPermissions
 end
 
+local invalidParameterString = "invalid parameter at index '%i'."
+
+function CommandClass:IsSyntaxValid(args)
+	for i = 1, #parameters do
+		local parameter = parameters[i]
+		local argString = args[i]
+
+		if !parameter:IsValid() then return false, string.format(invalidParameterString, i) end
+
+		local isValid, errorMessage = parameter:IsStringArgValid(argString)
+
+		if !isValid then return isValid, errorMessage end
+	end
+
+	return true
+end
+
+function CommandClass:ProcessArgStrings(strings, caller)
+	local processedArgs = {}
+
+	for i = 1, #parameters do
+    	-- TODO
+    end
+
+    return processedArgs
+end
+
 function CommandClass:DoCommand(ply, cmd, args, argstring)
 	-- We process the args by converting from strings to their expected types and values.
-	local processedArgs, targets = self:ProcessArgStrings(args)
+	local processedArgs, targets = self:ProcessArgStrings(args, ply)
 	local unpackedArgs = unpack(processedArgs)
-	local targetParameter = self.TargetParameter
 
 	-- If we have targets, then we need to do a loop to invoke the command once for each target.
-	if targets then
+	if self.TargetParameter and targets then
 		for i = 1, #targets do
 			local target = targets[i]
 

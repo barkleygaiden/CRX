@@ -14,9 +14,9 @@ local successString = "You kicked %s for Reason: %s"
 
 function kickCommand:Callback(ply, target, reason)
 	-- Format our reason string, default reason is done internally if needed.
-	local reason = string.format(reasonString, ply:Nick(), reason)
+	local formattedReason = string.format(reasonString, ply:Nick(), reason)
 
-	target:Kick(reason)
+	target:Kick(formattedReason)
 
 	return true, string.format(successString, ply:Nick(), reasonArg)
 end

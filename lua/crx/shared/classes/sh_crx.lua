@@ -107,6 +107,9 @@ function CRXClass:Command(name)
 	-- Sets our new command's name
 	newCommand.Name = name
 
+	-- Adds command to the core class's commands table.
+	self.Commands[name] = newCommand
+
 	return newCommand
 end
 
@@ -120,7 +123,7 @@ local leftParenthesis = "("
 local rightParenthesis = ")"
 
 function CRXClass:FormatArgs(args)
-	local queuedRemovals = {}
+	local argsToRemove = {}
 	local startIndex = 0
 	local insideParenthesis = false
 	local tableString = leftParenthesis
@@ -134,7 +137,7 @@ function CRXClass:FormatArgs(args)
 		    tableString = string.concat(tableString, argString)
 
 		    -- Stash the arg's index for arg removal later.
-		    table.insert(queuedRemovals, i)
+		    table.insert(argsToRemove, i)
 		end
 
 		-- If the arg is a left parenthesis character, it's the start of a table.
@@ -158,28 +161,14 @@ function CRXClass:FormatArgs(args)
 	local amountRemoved = 0
 
 	-- Loop through the table to remove the irrelevant args that were merged into table args.
-	for i = 1, #queuedRemovals do
-		table.remove(args, queuedRemovals[i] - amountRemoved)
+	for i = 1, #argsToRemove do
+		table.remove(args, argsToRemove[i] - amountRemoved)
 
 		-- Because we removed a key, we need to shift all future removals down by 1.
 		amountRemoved = amountRemoved + 1
 	end
 
 	return args
-end
-
-function CRXClass:IsSyntaxValid(args)
-	for i = 1, #args
-		local arg = args[i]
-
-		-- TODO: check target keyword validity
-		-- TODO: check if self can be targeted
-		-- TODO: check if we can target multiple people
-		-- TODO: check if bool is valid
-		-- TODO: check if number is number
-	end
-
-	return true
 end
 
 local CRXColor = Color(200, 0, 0, 255)
@@ -268,7 +257,7 @@ function CRXClass:ProcessCommand(ply, cmd, args, argstr)
 	local formattedArgs = self:FormatArgs(args)
 
 	-- Check to make sure our syntax is valid, and throw a halting error message if it isn't.
-	local validSyntax, errorMessage = self:IsSyntaxValid(formattedArgs)
+	local validSyntax, errorMessage = command:IsSyntaxValid(formattedArgs)
 
 	-- TODO: MsgC + chat.AddText on client.
 	if !validSyntax then return end

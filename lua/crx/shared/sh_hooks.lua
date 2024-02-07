@@ -21,13 +21,13 @@ if SERVER then
         loadQueue[ply] = nil
 
         -- Networks all users and usergroups to the connected player.
-     	CRXNet:Initialize(ply)
+        CRXNet:Initialize(ply)
     end)
 else
     -- TODO: Make this shared
     hook.Add("Think", "CRXThink", function()
         if !CRX then return end
-        
+
         CRX:Think()
-    end
+    end)
 end

@@ -11,6 +11,8 @@ local function BuildCommandButton(parent, categorylist, command)
     local oldInitialize = commandButton.Initialize
 
     function commandButton:Initialize()
+        oldInitialize(self)
+
         self.Command = command
 
         local description = command:GetDescription()
@@ -22,15 +24,15 @@ local function BuildCommandButton(parent, categorylist, command)
     end
 
     function commandButton:DoClick()
-        local command = parent:GetSelectedCommand()
+        local selectedCommand = parent:GetSelectedCommand()
 
         -- Unselect all commands if one is selected.
-        if command and command:IsValid() then
+        if selectedCommand and selectedCommand:IsValid() then
             parent.CategoryList:UnselectAll()
         end
 
         -- If the selected command is already this one, set selected command to nothing.
-        if command and command == self.Command then
+        if selectedCommand and selectedCommand == self.Command then
             parent:SetSelectedCommand(nil)
         else
             parent:SetSelectedCommand(self.Command)
@@ -57,7 +59,7 @@ local function BuildCommandList(parent)
 
     local categories = CRX:GetCategories()
 
-    for _, category in SortedPairs(categories)
+    for _, category in SortedPairs(categories) do
         -- If the category is invalid, don't add it.
         if !category:IsValid() then continue end
 
@@ -67,11 +69,9 @@ local function BuildCommandList(parent)
         -- This shouldn't ever happen.
         if !IsValid(collapsibleCategory) then return end
 
-        local commands = CRX:GetCommandsFromCategory(category)
+        local commands = category:GetCommands()
 
-        for i = 1, #commands do
-            local command = commands[i]
-
+        for _, command in SortedPairs(commands) do
             -- Local function to avoid pyramid hell.
             BuildCommandButton(command)
         end
@@ -91,7 +91,6 @@ local function GetPlayerText(ent, parameter)
 end
 
 local emptyString = ""
-local mouseLeftOrRight = bit.bor(MOUSE_LEFT, MOUSE_RIGHT)
 
 local function BuildEntityRow(entitylist, ent, parameter)
     if !IsValid(entitylist) then return end
@@ -124,12 +123,15 @@ local function BuildEntityRow(entitylist, ent, parameter)
 
         local listView = self:GetParent():GetParent()
         local id = self:GetID()
-        local selectedStatus = listView.SelectedRows[id]
+        local selectedStatus = listView.SelectedRows[id] != nil
+
+        -- If the selected status is already the same as the bool, halt.
+        if bool == selectedStatus then return end
 
         -- Add or remove the row from our selected rows table.
-        if bool and !selectedStatus then
+        if bool then
             listView.SelectedRows[id] = self.Entity
-        elseif !bool and selectedStatus
+        else
             listView.SelectedRows[id] = nil
         end
 
@@ -148,8 +150,6 @@ local function BuildEntityRow(entitylist, ent, parameter)
     end
 end
 
-local propString = "prop_"
-local distFormatString = "%aft"
 local hookName = "CRX_GUI_Commands%i"
 local entAddHook = "OnEntityCreated"
 local entRemoveHook = "EntityRemoved"
@@ -201,7 +201,6 @@ local function BuildEntityList(parent)
 
         if !command then return end
 
-        local targetParameter = command.TargetParameter
         local parameterType = entityParameter:GetType()
 
         for _, ply in player.Iterator() do
@@ -344,7 +343,7 @@ local function BuildEntityList(parent)
     return entityList
 end
 
-local descriptionHyphen - "%s - %s"
+local descriptionHyphen = "%s - %s"
 
 local function BuildBoolBox(parent, parameter, index)
     if !IsValid(parent) then return end
@@ -358,6 +357,8 @@ local function BuildBoolBox(parent, parameter, index)
     local oldInitialize = canvasPanel.Initialize
 
     function canvasPanel:Initialize()
+        oldInitialize(self)
+
         self.Parameter = parameter
         self.ArgIndex = index
 
@@ -380,7 +381,7 @@ local function BuildBoolBox(parent, parameter, index)
 
         if !args then return end
 
-        args[canvasPanel.ArgIndex] = val or defaultString
+        args[canvasPanel.ArgIndex] = val
     end
 
     return canvasPanel
@@ -398,6 +399,8 @@ local function BuildNumberBox(parent, parameter, index)
     local oldInitialize = canvasPanel.Initialize
 
     function canvasPanel:Initialize()
+        oldInitialize(self)
+
         self.Parameter = parameter
         self.ArgIndex = index
 
@@ -424,7 +427,7 @@ local function BuildNumberBox(parent, parameter, index)
 
         if !args then return end
 
-        args[canvasPanel.ArgIndex] = val or defaultString
+        args[canvasPanel.ArgIndex] = val or defaultNumber
     end
 
     return canvasPanel
@@ -442,6 +445,8 @@ local function BuildTextBox(parent, parameter, index)
     local oldInitialize = canvasPanel.Initialize
 
     function canvasPanel:Initialize()
+        oldInitialize(self)
+
         self.Parameter = parameter
         self.ArgIndex = index
 
@@ -483,6 +488,8 @@ local function BuildEntityBox(parent, parameter, index)
     local oldInitialize = canvasPanel.Initialize
 
     function canvasPanel:Initialize()
+        oldInitialize(self)
+
         self.Parameter = parameter
         self.ArgIndex = index
 
@@ -500,7 +507,6 @@ local function BuildEntityBox(parent, parameter, index)
 
     function entityBox:OnMenuOpened(menu)
         local selectedPlayer = self:GetSelected()
-        local parameterType = canvasPanel.Parameter:GetType()
 
         for _, ply in player.Iterator() do
             if !IsValid(ply) then continue end
@@ -514,9 +520,8 @@ local function BuildEntityBox(parent, parameter, index)
             -- If we have a selected player and it is this player, then select the choice after adding it.
             local shouldSelect = IsValid(selectedPlayer) and selectedPlayer == ply
 
-            self:AddChoice(choiceText, ply, selectedPlayer == ply)
+            self:AddChoice(choiceText, ply, shouldSelect)
 
-            local parent = canvasPanel:GetParent()
             local doButton = parent:GetButton()
 
             -- Invalidates the docommand button, checking to see if the command can be done or not.
@@ -524,7 +529,7 @@ local function BuildEntityBox(parent, parameter, index)
         end
     end
 
-    function entityBox:OnSelect(index, text, data)
+    function entityBox:OnSelect(index_, text, data)
         local parameterList = canvasPanel:GetParent()
         local args = parameterList:GetArgs()
 
@@ -574,8 +579,8 @@ local function BuildParameterList(parent)
     end
 
     function parameterList:BuildParameterPanels()
-        for i = 1, #parameters do
-            local parameter = parameters[i]
+        for i = 1, #self.Parameters do
+            local parameter = self.Parameters[i]
 
             if !parameter:IsValid() then continue end
 
@@ -592,7 +597,7 @@ local function BuildParameterList(parent)
             local parameterPanel = buildPanel(self, parameter, i)
 
             -- Insert the parameter panel in our table for future removal.
-            table.insert(self.ParameterPanels, parameterPanel) 
+            table.insert(self.ParameterPanels, parameterPanel)
         end
     end
 
@@ -708,7 +713,7 @@ local function BuildParameterList(parent)
             return
         end
 
-        local targets = parent:GetEntityList():GetSelectedRows()
+        local targetList = parent:GetEntityList():GetSelectedRows()
 
         -- If we have a target parameter and no targets are selected, return end.
         if command.TargetParameter and table.IsEmpty(targetList) then
@@ -752,14 +757,18 @@ end
 local function BuildCommandsTab(parent)
     if !IsValid(parent) then return end
 
+    local categoryList = BuildCommandList(parent)
+    local entityList = BuildEntityList(parent)
+    local parameterList = BuildParameterList(parent)
+
     AccessorFunc(parent, "CategoryList", "CategoryList")
     AccessorFunc(parent, "EntityList", "EntityList")
     AccessorFunc(parent, "ParameterList", "ParameterList")
     AccessorFunc(parent, "SelectedCommand", "SelectedCommand")
 
-    parent:SetCategoryList(BuildCommandList(parent))
-    parent:SetEntityList(BuildEntityList(parent))
-    parent:SetParameterList(BuildParameterList(parent))
+    parent:SetCategoryList(categoryList)
+    parent:SetEntityList(entityList)
+    parent:SetParameterList(parameterList)
 end
 
 hook.Add("CRX_Initialized", "GUI_BaseTab_Commands", function()

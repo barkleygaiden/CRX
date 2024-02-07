@@ -6,18 +6,19 @@ function GUIClass:__constructor()
     self.Frames = {}
     self.Tabs = {}
 
-	self.Font = "DermaDefault"
-	self.InfoString = string.format("CRX Admin Mod :: CRP Collective | CRX v%f", CRX_VERSION)
-	self.TimeString = "TimeShouldBeHere"
+    self.Font = "DermaDefault"
+    self.InfoString = string.format("CRX Admin Mod :: CRP Collective | CRX v%f", CRX_VERSION)
+    self.TimeString = "TimeShouldBeHere"
 
-	-- Size of our frame
-	self.FrameWidth = 1200
-	self.FrameHeight = 840
+    -- Size of our frame
+    self.FrameWidth = 1200
+    self.FrameHeight = 840
 
     self.ThemeColor = chicagoRP.GetSecondaryColor(true)
     self.ThemeColor.a = 200
 end
 
+local dateParams = "%I:%M:%S %p"
 local lastTimeUpdate = 0
 
 function GUIClass:Think()
@@ -31,8 +32,6 @@ function GUIClass:Think()
 
     lastTimeUpdate = CurTime()
 end
-
-local dateParams = "%I:%M:%S %p"
 
 function CRXClass:OpenMenu()
     self.MenuOpen = true
@@ -72,16 +71,16 @@ function GUIClass:CloseMenus()
 end
 
 function GUIClass:CloseMenu(frame)
-	if !IsValid(frame) then return end
+    if !IsValid(frame) then return end
 
-	frame:AlphaTo(0, 0.5, 0, function(data, panel)
-		if !IsValid(frame) then return end
+    frame:AlphaTo(0, 0.5, 0, function(data, panel)
+        if !IsValid(frame) then return end
 
         -- We have to use RemoveByValue because the table is sequential.
         table.RemoveByValue(self.Frames, frame)
 
-		frame:Close()
-	end)
+        frame:Close()
+    end)
 end
 
 function GUIClass:GetFrames()
@@ -99,11 +98,11 @@ local function BuildFrame(self2)
     -- Creates a Get/Set sheet function.
     AccessorFunc(frame, "Sheet", "Sheet")
 
-    local oPerformLayout = frame.PerformLayout   
+    local oPerformLayout = frame.PerformLayout
 
     function frame:PerformLayout(w, h)
         -- Scale our frame's buttons.
-        oPerformLayout(self, w, h) 
+        oPerformLayout(self, w, h)
 
         -- Scale our infobar's size.
         self.InfoBar:SetSize(w - (w * 0.05), h - (h * 0.95))
@@ -116,6 +115,8 @@ local function BuildFrame(self2)
     local lastW, lastH = self2.FrameWidth, self2.FrameHeight
 
     function frame:OnMouseReleased(keycode)
+        oldOnMouseReleased(self, keycode)
+
         -- If the keycode isn't mouse1, the frame wasn't being resized.
         if keycode != MOUSE_FIRST then return end
 

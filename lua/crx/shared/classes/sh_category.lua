@@ -14,10 +14,10 @@ function CategoryClass:__tostring()
 end
 
 function CategoryClass:__eq(other)
-	-- If either command doesn't have a name, they are not equal.
+	-- If either category lacks a name, they are not equal.
 	if !self:IsValid() or !other:IsValid() then return false end
 
-	return self:GetName() == other:GetName()
+	return self.Name == other:GetName()
 end
 
 function CategoryClass:IsValid()
@@ -28,7 +28,7 @@ function CategoryClass:Remove()
 	local categories = CRX:GetCategories()
 
 	-- Removes category from the main class table.
-	self.Categories[self.Name] = nil
+	categories[self.Name] = nil
 
 	-- TODO: Does this even do what I think it does?
 	setmetatable(self, nil)
