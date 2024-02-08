@@ -226,6 +226,7 @@ function CRXClass:DoInternalCommand(ply, cmd, args, argstr)
 	return false
 end
 
+local errorFormatString = 'MsgC(color_white, "[", Color(200, 0, 0, 255), "CRX", color_white, "] - ", Color(255, 241, 122, 200), "Error: '
 local commandQueue = {}
 
 function CRXClass:ProcessCommand(ply, cmd, args, argstr)
@@ -257,10 +258,19 @@ function CRXClass:ProcessCommand(ply, cmd, args, argstr)
 	local formattedArgs = self:FormatArgs(args)
 
 	-- Check to make sure our syntax is valid, and throw a halting error message if it isn't.
-	local validSyntax, errorMessage = command:IsSyntaxValid(formattedArgs)
+	local validSyntax, errorMessage = command:IsSyntaxValid(formattedArgs, caller)
 
-	-- TODO: MsgC + chat.AddText on client.
-	if !validSyntax then return end
+	if !validSyntax then
+		-- If an error message was provided, print it for the caller.
+		if errorMessage and IsValid(caller) then
+			ply:SendLua(string.format(errorFormatString, errorMessage))
+		-- If the caller is invalid, print it only for the server.
+		elseif SERVER and errorMessage and !IsValid(caller) then
+			MsgC(color_white, "[", Color(200, 0, 0, 255), "CRX", color_white, "] - ", Color(255, 241, 122, 200), "Error: ", errorMessage)
+		end
+
+		return
+	end
 
 	-- Process the command inside of it's object.
 	command:DoCommand(ply, cmd, formattedArgs, argstr)

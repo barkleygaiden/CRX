@@ -254,34 +254,70 @@ local function GetPlayerFromTrace(caller)
 	return IsValid(tr.Entity) and tr.Entity:IsPlayer() and tr.Entity
 end
 
--- TODO: Do this.
 -- ^ - yourself
 -- * - everyone
 -- @ - player in front of you
 -- #<group> - target by group
 -- %<group> - target by group (inheritance counts)
+local selfKeyword = "^"
+local everyoneKeyword = "*"
+local frontKeyword = "@"
+local groupKeyword = "#"
+local groupInheritanceKeyword = "%"
+local negationKeyword = "!"
+
 local function ProcessPlayerTargeter(str, caller)
-	local firstChar, secondChar = string.sub(str, 1, 1), string.sub(str, 2, 2)
 	local players = {}
 	local oppositePlayers = {}
-	local tracePly = (str == "@" and GetPlayerFromTrace(caller)) or nil
+	local firstChar, secondChar = string.sub(str, 1, 1), string.sub(str, 2, 2)
+	local mainKeyword = (string.IsValid(secondChar) and secondChar) or firstChar
 
-	for i, ply in player.Iterator() d
+	-- Get the player in front of the caller (self) if they exist.
+	local tracePly = (mainKeyword == frontKeyword and GetPlayerFromTrace(caller)) or nil
+
+	-- Subtract any keywords from the provided string in order to get the provided usergroup (if present).
+	local targetedGroup = string.gsub(str, "[!#]")
+
+	for i, ply in player.Iterator() do
 		local passedArg = false
 
-		if tracePly and tracePly == ply then
+		-- If the player is the caller (self), insert them.
+		if mainKeyword == selfKeyword and caller == ply then
 			passedArg = true
+		-- Insert every player.
+		elseif mainKeyword == everyoneKeyword then
+			passedArg = true
+		-- If the player is in front of the caller (self), insert them.
+		elseif tracePly and tracePly == ply then
+			passedArg = true
+		-- If the player is in the provided usergroup, insert them.
+		elseif mainKeyword == groupKeyword then
+			local userGroup = ply:GetUserGroup()
+
+			passedArg = userGroup == targetedGroup
+		-- If the player is in the provided usergroup or is in a usergroup that inherits from it, insert them.
+		elseif mainKeyword == groupKeyword then
+			local userGroup = ply:GetUserGroup()
+			local inheritor = CAMI.UsergroupInherits(userGroup, targetedGroup)
+
+			passedArg = userGroup == targetedGroup or inheritor
 		end
 
+		-- If the player is included in the main keyword, insert them into the primary table.
 		if passedArg then
 			table.insert(players, ply)
+		-- Otherwise, insert them into the opposite table.
 		else
 			table.insert(oppositePlayers, ply)
 		end
 	end
 
-	-- No negation keyword, so return the primary player table. 
-	if firstChar != "!" then return end
+	-- Negation keyword present, so return the opposite player table.
+	if firstChar == negationKeyword then
+		return oppositePlayers
+	end
+		
+	return players
 end
 
 local function ProcessPlayerName(str)
@@ -344,11 +380,13 @@ local boolError = "'boolean' expected for argument index '%i'."
 local numberError = "'number' expected for argument index '%i'."
 local targetKeywordError = "valid 'target' keyword expected for argument index '%i'."
 
-function ParameterClass:IsStringArgValid(argstr)
+function ParameterClass:IsStringArgValid(argstr, caller)
 	local isValid = true
 
+	-- If the arg is empty, the arg is invalid.
 	if !string.IsValid(argstr) then
 		isValid = false
+	-- If the string is supposed to be a boolean and is not true/false or 0/1, the arg is invalid.
 	elseif parameterType == CRX_PARAMETER_BOOL and !(
 		argString == trueBoolString or
 		argString == trueNumberString or
@@ -357,14 +395,25 @@ function ParameterClass:IsStringArgValid(argstr)
 
 		isValid = false
 		errorMessage = string.format(boolError, i)
+	-- If the string has any non-numerical or non-digit characters, the arg is invalid.
 	elseif parameterType == CRX_PARAMETER_NUMBER and string.match(argString, "[^%d%.]") then
 		isValid = false
 		errorMessage = string.format(numberError, i)
 	elseif parameterType == CRX_PARAMETER_PLAYER then
 		local firstChar, secondChar = string.sub(str, 1, 1), string.sub(str, 2, -2)
-		local selectedNobody = secondChar and (firstChar == "!" and secondChar == "*")
 
-		if (firstChar == "!" and !secondChar) or selectedNobody then
+		-- If we're trying to select the caller (self) and they aren't valid, the arg is invalid.
+		local selectedNil = (firstChar == selfKeyword or secondChar == selfKeyword) and !IsValid(caller)
+
+		-- If we're trying to select everyone and negate it, the arg is invalid because that selects nobody.
+		local selectedNobody = secondChar and (firstChar == negationKeyword and secondChar == everyoneKeyword)
+
+		-- If we're trying to select the caller (self) and they aren't valid, the arg is invalid.
+		if (firstChar == negationKeyword and !secondChar) or
+			selectedNil or selectedNobody or
+			-- If we're trying to select the player in front of the caller (self) and they aren't valid, the arg is invalid.
+			(firstChar == frontKeyword and !IsValid(GetPlayerFromTrace(caller))) then
+
 			isValid = false
 			errorMessage = string.format(targetKeywordError, i)
 		end

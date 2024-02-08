@@ -158,14 +158,14 @@ end
 
 local invalidParameterString = "invalid parameter at index '%i'."
 
-function CommandClass:IsSyntaxValid(args)
+function CommandClass:IsSyntaxValid(args, caller)
 	for i = 1, #parameters do
 		local parameter = parameters[i]
 		local argString = args[i]
 
 		if !parameter:IsValid() then return false, string.format(invalidParameterString, i) end
 
-		local isValid, errorMessage = parameter:IsStringArgValid(argString)
+		local isValid, errorMessage = parameter:IsStringArgValid(argString, caller)
 
 		if !isValid then return isValid, errorMessage end
 	end
@@ -175,12 +175,22 @@ end
 
 function CommandClass:ProcessArgStrings(strings, caller)
 	local processedArgs = {}
+	local targets = {}
 
 	for i = 1, #parameters do
-    	-- TODO
+		local parameter = parameters[i]
+		local arg = parameter:StringToArg(strings[i], caller)
+
+		-- If the current parameter is the target, set the targets var to the provided target table.
+		if parameter:IsTarget() then
+			targets = arg
+		-- Otherwise, insert it into the processed args table.
+		else
+			table.insert(processedArgs, arg)
+		end
     end
 
-    return processedArgs
+    return processedArgs, targets
 end
 
 function CommandClass:DoCommand(ply, cmd, args, argstring)
@@ -189,7 +199,7 @@ function CommandClass:DoCommand(ply, cmd, args, argstring)
 	local unpackedArgs = unpack(processedArgs)
 
 	-- If we have targets, then we need to do a loop to invoke the command once for each target.
-	if self.TargetParameter and targets then
+	if self.TargetParameter and !table.IsEmpty(targets) then
 		for i = 1, #targets do
 			local target = targets[i]
 
