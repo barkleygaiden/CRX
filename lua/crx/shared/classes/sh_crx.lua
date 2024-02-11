@@ -226,7 +226,6 @@ function CRXClass:DoInternalCommand(ply, cmd, args, argstr)
 	return false
 end
 
-local errorFormatString = 'MsgC(color_white, "[", Color(200, 0, 0, 255), "CRX", color_white, "] - ", Color(255, 241, 122, 200), "Error: '
 local commandQueue = {}
 
 function CRXClass:ProcessCommand(ply, cmd, args, argstr)
@@ -261,17 +260,124 @@ function CRXClass:ProcessCommand(ply, cmd, args, argstr)
 	local validSyntax, errorMessage = command:IsSyntaxValid(formattedArgs, caller)
 
 	if !validSyntax then
-		-- If an error message was provided, print it for the caller.
-		if errorMessage and IsValid(caller) then
-			ply:SendLua(string.format(errorFormatString, errorMessage))
-		-- If the caller is invalid, print it only for the server.
-		elseif SERVER and errorMessage and !IsValid(caller) then
-			MsgC(color_white, "[", Color(200, 0, 0, 255), "CRX", color_white, "] - ", Color(255, 241, 122, 200), "Error: ", errorMessage)
-		end
+		-- If an error message was provided, print it for the caller in their chat and console.
+		CRXClass:Notify(caller, errorMessage, true, args, targets)
 
 		return
 	end
 
 	-- Process the command inside of it's object.
 	command:DoCommand(ply, cmd, formattedArgs, argstr)
+end
+
+local errorColor = Color(255, 140, 40)
+local errorString = "Error: "
+local emptyString = ""
+
+function CRXClass:ErrorMessage(caller, ...)
+	local isRCon = SERVER and !IsValid(caller)
+	local firstArg = {...}[1]
+	local shouldInsertColor = firstArg and !IsColor(firstArg)
+
+	-- Only print for client, and server console if the caller is invalid.
+	if isRCon or CLIENT then
+		-- Since this is an error, concat an error prefix.
+		MsgC(errorColor, errorString, (shouldInsertColor and color_white) or emptyString, ...)
+	end
+
+	-- If this was called on SERVER or the caller is not valid, don't add text to chat.
+	if isRCon or SERVER then return end
+
+	chat.AddText(errorColor, errorString, (shouldInsertColor and color_white) or emptyString, ...)
+end
+
+local commaSeparater = ", "
+local finalSeparater = ", and "
+
+local function BuildTargetString(tbl, targets)
+	if !targets or table.IsEmpty(targets) then
+		table.insert(tbl, "NONE")
+
+		return
+	end
+
+	local targetCount = #targets
+
+	for k = 1, targetCount do
+		local target = targets[k]
+
+		table.insert(tbl, target)
+
+		if k != targetCount then
+			table.insert(tbl, commaSeparater)
+		elseif k == targetCount - 1 then
+			table.insert(tbl, finalSeparater)
+		end
+	end
+end
+
+local valueColor = Color(0, 255, 0)
+local callerKeyword = "c"
+local targetKeyword = "t"
+
+-- TODO: Use net system to have clients parse this on their own.
+function CRXClass:Notify(caller, notify, targets, ...)
+	-- We can't possibly know what the player is trying to notify us of 
+	if !string.IsValid(notify) then return end
+
+	local args = {...}
+
+    -- If the targets var is a table with entities, keep it.
+    -- Otherwise, assume it is an arg and merge it into the varargs table.
+	if !(istable(targets) and isentity(targets[1])) then
+		table.insert(args, 1, targets)
+	end
+
+	local notifyArgs = {}
+    local currentArg = 1
+
+    -- NOTE: Old pattern was "([^#]*)#([%.%d]*[%a])([^#]*)"
+	string.gsub(notify, "([^#]*)#[%a]([^#]*)", function(prefix, tag, suffix)
+		local arg = args[currentArg]
+		local internalArg = false
+
+		if string.IsValid(prefix) then
+			table.insert(notifyArgs, color_white)
+			table.insert(notifyArgs, prefix)
+		end
+
+		local keyword = string.sub(tag, -1, -1)
+
+		if keyword == callerKeyword then
+			local isRCon = !IsValid(caller)
+
+			if isRCon then
+				table.insert(notifyArgs, serverColor)
+			end
+
+			table.insert(notifyArgs, (!isRCon and caller) or "SERVER")
+
+			internalArg = true
+		elseif keyword == targetKeyword then
+			BuildTargetString(notifyArgs, targets)
+
+			internalArg = true
+    	else
+			table.insert(notifyArgs, valueColor)
+			table.insert(notifyArgs, string.format(tag, tostring(arg)))
+    	end
+
+		if string.IsValid(suffix) then
+			table.insert(notifyArgs, color_white)
+			table.insert(notifyArgs, suffix)
+		end
+
+    	if !internalArg then
+    		currentArg = currentArg + 1
+    	end
+	end)
+
+	-- Network args to players and input them into CRXClass:Notify.
+	-- OR
+	-- Network finished msg table to players and have them use that.
 end

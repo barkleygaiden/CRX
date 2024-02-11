@@ -181,42 +181,20 @@ function CommandClass:ProcessArgStrings(strings, caller)
 		local parameter = parameters[i]
 		local arg = parameter:StringToArg(strings[i], caller)
 
-		-- If the current parameter is the target, set the targets var to the provided target table.
-		if parameter:IsTarget() then
-			targets = arg
-		-- Otherwise, insert it into the processed args table.
-		else
-			table.insert(processedArgs, arg)
-		end
+		-- Insert the arg into the processed args table.
+		table.insert(processedArgs, arg)
     end
 
     return processedArgs, targets
 end
 
+local commaSepareter = ", "
+
 function CommandClass:DoCommand(ply, cmd, args, argstring)
 	-- We process the args by converting from strings to their expected types and values.
-	local processedArgs, targets = self:ProcessArgStrings(args, ply)
+	local processedArgs = self:ProcessArgStrings(args, ply)
 	local unpackedArgs = unpack(processedArgs)
 
-	-- If we have targets, then we need to do a loop to invoke the command once for each target.
-	if self.TargetParameter and !table.IsEmpty(targets) then
-		for i = 1, #targets do
-			local target = targets[i]
-
-			if !IsValid(target) then continue end
-
-			-- We invoke the command's callback for this target and leave it to them.
-			local notifyMessage = self.Callback(ply, target, unpackedArgs)
-
-			-- TODO: MsgC + chat.AddText on client.
-		end
-
-		-- Return end to stop the callback from being called again.
-		return
-	end
-
 	-- Finally, we invoke the command's callback and leave it to them.
-	local notifyMessage = self.Callback(ply, unpackedArgs)
-
-	-- TODO: MsgC + chat.AddText on client.
+	self.Callback(ply, unpackedArgs)
 end
