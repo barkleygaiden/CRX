@@ -1,4 +1,5 @@
-CRXCommandClass = CRXCommandClass or chicagoRP.NewClass()
+CRXCommandClass = {}
+CRXCommandClass.__index = CRXCommandClass
 
 local CommandClass = CRXCommandClass
 
@@ -25,6 +26,12 @@ end
 
 function CommandClass:IsValid()
 	return string.IsValid(self.Name) and isfunction(self.Callback)
+end
+
+function CommandClass:New()
+	local newCommand = setmetatable({}, self)
+
+	return newCommand
 end
 
 function CommandClass:Remove()
@@ -198,3 +205,15 @@ function CommandClass:DoCommand(ply, cmd, args, argstring)
 	-- Finally, we invoke the command's callback and leave it to them.
 	self.Callback(ply, unpackedArgs)
 end
+
+setmetatable(CommandClass, {
+	__call = function(tbl, ...)
+		local newCommand = CommandClass:New(...)
+
+		if newCommand.__constructor then
+			newCommand:__constructor(...)
+		end
+
+		return newCommand
+	end
+})

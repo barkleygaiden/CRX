@@ -1,4 +1,5 @@
-CRXNetClass = CRXNetClass or chicagoRP.NewClass()
+CRXNetClass = {}
+CRXNetClass.__index = CRXNetClass
 
 local NetClass = CRXNetClass
 local emptystring = ""
@@ -246,6 +247,18 @@ function NetClass:ReceiveGroupChange(len, ply)
 		database:ChangeUserGroupInheritance(groupName, nameOrInheritance)
 	end
 end
+
+setmetatable(NetClass, {
+    __call = function(tbl, ...)
+        local instance = setmetatable({}, NetClass)
+
+        if instance.__constructor then
+            instance:__constructor(...)
+        end
+
+        return instance
+    end
+})
 
 -- Net Receivers
 if SERVER then

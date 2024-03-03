@@ -1,4 +1,5 @@
-CRXCategoryClass = CRXCategoryClass or chicagoRP.NewClass()
+CRXCategoryClass = {}
+CRXCategoryClass.__index = CRXCategoryClass
 
 local CategoryClass = CRXCategoryClass
 
@@ -22,6 +23,12 @@ end
 
 function CategoryClass:IsValid()
 	return string.IsValid(self.Name)
+end
+
+function CategoryClass:New()
+	local newCategory = setmetatable({}, self)
+
+	return newCategory
 end
 
 function CategoryClass:Remove()
@@ -69,3 +76,15 @@ end
 function CategoryClass:HasCommand(name)
 	return self.Commands[name]
 end
+
+setmetatable(CategoryClass, {
+	__call = function(tbl, ...)
+		local newCategory = CategoryClass:New(...)
+
+		if newCategory.__constructor then
+			newCategory:__constructor(...)
+		end
+
+		return newCategory
+	end
+})

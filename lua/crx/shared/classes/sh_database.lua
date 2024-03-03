@@ -1,4 +1,5 @@
-CRXDatabaseClass = CRXDatabaseClass or chicagoRP.NewClass()
+CRXDatabaseClass = {}
+CRXDatabaseClass.__index = CRXDatabaseClass
 
 local DatabaseClass = CRXDatabaseClass
 
@@ -207,3 +208,15 @@ function DatabaseClass:UserGroupExists(group)
 	-- Usergroup will be registered in CAMI by the time this function is reasonably used.
 	return CAMI.GetUsergroup(group)
 end
+
+setmetatable(DatabaseClass, {
+    __call = function(tbl, ...)
+        local instance = setmetatable({}, DatabaseClass)
+
+        if instance.__constructor then
+            instance:__constructor(...)
+        end
+
+        return instance
+    end
+})

@@ -1,4 +1,5 @@
-CRXGUIClass = CRXGUIClass or chicagoRP.NewClass()
+CRXGUIClass = {}
+CRXGUIClass.__index = CRXGUIClass
 
 local GUIClass = CRXGUIClass
 
@@ -6,6 +7,7 @@ function GUIClass:__constructor()
     self.Frames = {}
     self.Tabs = {}
 
+    -- TODO: Custom font support.
     self.Font = "DermaDefault"
     self.InfoString = string.format("CRX Admin Mod :: CRP Collective | CRX v%f", CRX_VERSION)
     self.TimeString = "TimeShouldBeHere"
@@ -238,4 +240,22 @@ function GUIClass:RemoveTab(name)
 
     -- No hashtable so we have to do a loop.
     table.RemoveByValue(self.Tabs, name)
+end
+
+setmetatable(GUIClass, {
+    __call = function(tbl, ...)
+        local instance = setmetatable({}, GUIClass)
+
+        if instance.__constructor then
+            instance:__constructor(...)
+        end
+
+        return instance
+    end
+})
+
+if CRX then
+    local cGUI = GUIClass()
+
+    CRX.GUI = cGUI
 end

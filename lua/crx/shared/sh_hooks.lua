@@ -1,8 +1,10 @@
 if SERVER then
     hook.Add("Initialize", "CRXDatabaseInit", function()
-        if !CRXDatabase then return end
+        if !CRX then return end
 
-        CRXDatabase:Initialize()
+        local database = CRX:GetDatabase()
+
+        database:Initialize()
     end)
 
     local loadQueue = {}
@@ -12,7 +14,6 @@ if SERVER then
     end)
 
     hook.Add("SetupMove", "CRXPlayerInit", function(ply, mv, cmd)
-        if !CRXNet then return end
         if !IsValid(ply) then return end
 
         -- Check if networking has already been done
@@ -20,8 +21,10 @@ if SERVER then
 
         loadQueue[ply] = nil
 
+        local cNet = CRX:GetNet()
+
         -- Networks all users and usergroups to the connected player.
-        CRXNet:Initialize(ply)
+        cNet:Initialize(ply)
     end)
 else
     -- TODO: Make this shared

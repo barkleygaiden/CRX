@@ -1,4 +1,5 @@
-CRXParameterClass = CRXParameterClass or chicagoRP.NewClass()
+CRXParameterClass = {}
+CRXParameterClass.__index = CRXParameterClass
 
 local ParameterClass = CRXParameterClass
 
@@ -33,6 +34,12 @@ function ParameterClass:IsValid()
 	local validType = isnumber(self.Type) and self.Type >= 1 and self.Type <= 4
 
 	return validType and string.IsValid(self.Name)
+end
+
+function ParameterClass:New()
+	local newParameter = setmetatable({}, self)
+
+	return newParameter
 end
 
 function ParameterClass:Remove()
@@ -426,3 +433,15 @@ function ParameterClass:IsStringArgValid(argstr, caller)
 
 	return true
 end
+
+setmetatable(ParameterClass, {
+	__call = function(tbl, ...)
+		local newParameter = ParameterClass:New(...)
+
+		if newParameter.__constructor then
+			newParameter:__constructor(...)
+		end
+
+		return newParameter
+	end
+})

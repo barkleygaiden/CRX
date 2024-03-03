@@ -1,4 +1,7 @@
-CRXClass = CRXClass or chicagoRP.NewClass()
+CRXClass = {}
+CRXClass.__index = CRXClass
+
+local CoreClass = CRXClass
 
 function CRXClass:__constructor()
 	self.Categories = {}
@@ -381,3 +384,15 @@ function CRXClass:Notify(caller, notify, targets, ...)
 	-- OR
 	-- Network finished msg table to players and have them use that.
 end
+
+setmetatable(CoreClass, {
+	__call = function(tbl, ...)
+		local instance = setmetatable({}, CoreClass)
+
+        if instance.__constructor then
+            instance:__constructor(...)
+        end
+
+		return instance
+	end
+})
