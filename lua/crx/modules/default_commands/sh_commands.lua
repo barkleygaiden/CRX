@@ -27,7 +27,7 @@ function kickCommand:Callback(ply, targets, reason)
 		end
 	end
 
-	CRX:Notify(ply, successString, targets, reason)
+	CRX:Notify(ply, CRX_ADMIN, successString, targets, reason)
 end
 
 -- Add command to the category object

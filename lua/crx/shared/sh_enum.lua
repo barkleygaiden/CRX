@@ -14,3 +14,4 @@ CRX_PARAMETER_PLAYER = 4
 -- Network strings
 util.AddNetworkString("CRX_NetworkUser")
 util.AddNetworkString("CRX_NetworkUserGroup")
+util.AddNetworkString("CRX_NetworkNotification")

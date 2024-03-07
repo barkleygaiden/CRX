@@ -248,6 +248,78 @@ function NetClass:ReceiveGroupChange(len, ply)
 	end
 end
 
+local argWrites = {
+	["string"] = function(arg)
+		net.WriteUInt(1, 2)
+		net.WriteString(arg)
+	end,
+	["player"] = function(arg)
+		net.WriteUInt(2, 2)
+		net.WritePlayer(arg)
+	end,
+	["table"] = function(arg)
+		net.WriteUInt(3, 2)
+		net.WriteColor(arg, false)
+	end
+}
+
+-- SERVER --> CLIENT
+-- Networking notifications done via CoreClass:Notify to clients.
+function NetClass:NetworkNotification(ply, ...)
+	if CLIENT then return end
+
+	local notifyArgs = {...}
+	local argCount = #notifyArgs
+
+	net.Start("CRX_NetworkNotification")
+	net.WriteUInt(argCount, 12)
+
+	for i = 1, argCount do
+		local arg = notifyArgs[i]
+		local argType = type(arg)
+		local writeFunc = argWrites[argType]
+
+		writeFunc(arg)
+	end
+
+	net.Send(ply)
+end
+
+local argWrites = {
+	function()
+		return net.ReadString()
+	end,
+	function()
+		return net.ReadPlayer()
+	end,
+	function()
+		return net.ReadColor()
+	end
+}
+
+-- CLIENT
+-- Receives a networked notification from the server.
+function NetClass:ReceiveNotification(len)
+	if SERVER then return end
+
+	local notifyArgs = {}
+	local argCount = net.ReadUInt(12)
+
+	for i = 1, argCount do
+		local argType = net.ReadUInt(2)
+		local readFunc = argReads[argType]
+		local arg = readFunc()
+
+		table.insert(notifyArgs, arg)
+	end
+
+	local unpackedArgs = unpack(notifyArgs)
+
+	-- Print the notification in the player's console and chat box.
+	chat.AddText(unpackedArgs)
+	MsgC(unpackedArgs)
+end
+
 setmetatable(NetClass, {
     __call = function(tbl, ...)
         local instance = setmetatable({}, NetClass)
@@ -263,18 +335,32 @@ setmetatable(NetClass, {
 -- Net Receivers
 if SERVER then
 	net.Receive("CRX_NetworkUser", function(len, ply)
-		CRXNet:ReceiveUserChange(len, ply)
+		local cNet = CRX:GetNet()
+
+		cNet:ReceiveUserChange(len, ply)
 	end)
 
 	net.Receive("CRX_NetworkUserGroup", function(len, ply)
-		CRXNet:ReceiveGroupChange(len, ply)
+		local cNet = CRX:GetNet()
+
+		cNet:ReceiveGroupChange(len, ply)
 	end)
 else
 	net.Receive("CRX_NetworkUser", function(len)
-		CRXNet:ReceiveUser(len)
+		local cNet = CRX:GetNet()
+
+		cNet:ReceiveUser(len)
 	end)
 
 	net.Receive("CRX_NetworkUserGroup", function(len)
-		CRXNet:ReceiveUserGroup(len)
+		local cNet = CRX:GetNet()
+
+		cNet:ReceiveUserGroup(len)
+	end)
+
+	net.Receive("CRX_NetworkNotification", function(len)
+		local cNet = CRX:GetNet()
+
+		cNet:ReceiveNotification(len)
 	end)
 end

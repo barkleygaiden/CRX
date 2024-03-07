@@ -74,7 +74,6 @@ function DatabaseClass:SetUserGroup(steamid, group)
 	-- Network the new user change to all clients.
 	nett:NetworkUser(steamid, group)
 
-	-- TODO: How does string.format handle nil?
 	local query = string.format(setUserGroupQuery, steamid, group)
 
 	sql.Begin()
@@ -101,7 +100,6 @@ function DatabaseClass:ChangeUserGroupName(group, name)
 	-- Network the new CAMI_USERGROUP changes to all clients.
 	nett:NetworkUserGroup(userGroup)
 
-	-- TODO: How does string.format handle nil?
 	local changeQuery = string.format(changeUserGroupQuery, userGroup.Name, userGroup.Inherits)
 
 	sql.Begin()
@@ -123,7 +121,6 @@ function DatabaseClass:ChangeUserGroupInheritance(group, inheritance)
 	-- Network the new CAMI_USERGROUP changes to all clients.
 	nett:NetworkUserGroup(userGroup)
 
-	-- TODO: How does string.format handle nil?
 	local changeQuery = string.format(changeUserGroupQuery, userGroup.Name, userGroup.Inherits)
 
 	sql.Begin()

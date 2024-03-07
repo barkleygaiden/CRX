@@ -322,10 +322,14 @@ end
 local valueColor = Color(0, 255, 0)
 local callerKeyword = "c"
 local targetKeyword = "t"
+local groupConversions = {
+	["user"] = CRX_USER,
+	["admin"] = CRX_ADMIN,
+	["superadmin"] = CRX_SUPERADMIN
+}
 
--- TODO: Use net system to have clients parse this on their own.
-function CRXClass:Notify(caller, notify, targets, ...)
-	-- We can't possibly know what the player is trying to notify us of 
+function CRXClass:Notify(caller, receivers, notify, targets, ...)
+	-- We can't possibly know what the caller is trying to notify us of.
 	if !string.IsValid(notify) then return end
 
 	local args = {...}
@@ -380,9 +384,34 @@ function CRXClass:Notify(caller, notify, targets, ...)
     	end
 	end)
 
-	-- Network args to players and input them into CRXClass:Notify.
-	-- OR
-	-- Network finished msg table to players and have them use that.
+	if table.IsEmpty(notifyArgs) then return end
+
+	-- If the number is an enum, we need to assemble a receiver table.
+	if isnumber(receivers) then
+		local groupEnum = receivers
+
+		receivers = {}
+
+		for i, ply in player.Iterator() do
+			local inheritance = CAMI.InheritanceRoot(ply:GetUserGroup())
+			local inheritanceEnum = groupConversions[inheritance]
+
+			if inheritanceEnum < groupEnum then
+				continue
+			end
+
+			table.insert(receivers, ply)
+		end
+	end
+
+	-- Print the notification in the server console.
+	if SERVER then
+		MsgC(unpack(notifyArgs))
+	end
+
+	local cNet = self.Net
+
+	cNet:NetworkNotification(receivers, notifyArgs)
 end
 
 setmetatable(CoreClass, {
